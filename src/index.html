@@ -52,17 +52,28 @@
       </div>
     </section>
 
-    <section class="panel" aria-labelledby="menu-title">
+    <section class="panel goal-card" aria-labelledby="goal-title">
       <div class="section-heading">
-        <h2 id="menu-title">今日のクエスト候補</h2>
-        <span>任意</span>
+        <h2 id="goal-title">今日の目標</h2>
+        <span id="goal-status">あと少し</span>
       </div>
-      <div class="menu-list">
-        <label><input type="checkbox" name="menu" value="腕立て"> 腕立て</label>
-        <label><input type="checkbox" name="menu" value="腹筋"> 腹筋</label>
-        <label><input type="checkbox" name="menu" value="スクワット"> スクワット</label>
-        <label><input type="checkbox" name="menu" value="プランク"> プランク</label>
-        <label><input type="checkbox" name="menu" value="ストレッチ"> ストレッチ</label>
+      <div class="goal-grid">
+        <div>
+          <span>今日の目標スコア</span>
+          <strong id="target-score">100</strong>
+        </div>
+        <div>
+          <span>現在スコア</span>
+          <strong id="current-score">0</strong>
+        </div>
+        <div>
+          <span>達成率</span>
+          <strong id="achievement-rate">0%</strong>
+        </div>
+      </div>
+      <div class="goal-tip">
+        <span>おすすめ目安</span>
+        <p id="goal-recommendation">腕立て10回 + ストレッチ5分</p>
       </div>
     </section>
 
@@ -78,7 +89,12 @@
         <option value="スクワット">スクワット</option>
         <option value="プランク">プランク</option>
         <option value="ストレッチ">ストレッチ</option>
+        <option value="custom">その他 / 新規追加</option>
       </select>
+      <div id="custom-exercise-area" class="custom-exercise-area hidden">
+        <label class="field-label" for="custom-exercise-name">新しい種目名</label>
+        <input id="custom-exercise-name" class="text-field" type="text" placeholder="例: 背筋">
+      </div>
 
       <fieldset class="record-type-group">
         <legend>記録方式</legend>
@@ -90,6 +106,11 @@
       <div class="input-row">
         <input id="record-amount" type="number" min="0" inputmode="numeric" placeholder="15">
         <span id="record-unit">分</span>
+      </div>
+
+      <div class="timer-card" aria-label="タイマー">
+        <span>タイマー</span>
+        <strong id="timer-display">00:00</strong>
       </div>
 
       <fieldset class="effort-group">

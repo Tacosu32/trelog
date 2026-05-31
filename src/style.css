@@ -237,12 +237,6 @@ h2 {
   margin-bottom: 12px;
 }
 
-.menu-list {
-  display: grid;
-  gap: 9px;
-}
-
-.menu-list label,
 .effort-group label,
 .record-type-group label {
   display: flex;
@@ -256,11 +250,60 @@ h2 {
   font-weight: 700;
 }
 
-input[type="checkbox"],
 input[type="radio"] {
   width: 20px;
   height: 20px;
   accent-color: var(--primary);
+}
+
+.goal-card {
+  background: linear-gradient(160deg, #ffffff 0%, #fff1d6 100%);
+}
+
+.goal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.goal-grid div,
+.goal-tip,
+.timer-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 249, 0.9);
+}
+
+.goal-grid div {
+  display: grid;
+  gap: 6px;
+  min-height: 72px;
+  padding: 10px;
+}
+
+.goal-grid span,
+.goal-tip span,
+.timer-card span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.goal-grid strong {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.goal-tip {
+  display: grid;
+  gap: 4px;
+  padding: 11px;
+}
+
+.goal-tip p {
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .field-label {
@@ -268,7 +311,8 @@ input[type="radio"] {
   margin-bottom: 7px;
 }
 
-.select-field {
+.select-field,
+.text-field {
   width: 100%;
   min-height: 48px;
   margin-bottom: 14px;
@@ -278,6 +322,10 @@ input[type="radio"] {
   background: #fffdf9;
   color: var(--ink);
   font-weight: 700;
+}
+
+.custom-exercise-area.hidden {
+  display: none;
 }
 
 .input-row {
@@ -320,6 +368,22 @@ input[type="radio"] {
 
 .record-type-group label {
   justify-content: center;
+}
+
+.timer-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  margin-bottom: 14px;
+  padding: 11px 12px;
+}
+
+.timer-card strong {
+  font-size: 1.55rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .effort-group {

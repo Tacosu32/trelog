@@ -9,20 +9,65 @@ const formMessage = document.getElementById("form-message");
 const historyList = document.getElementById("history-list");
 const emptyHistory = document.getElementById("empty-history");
 const exerciseSelect = document.getElementById("exercise-select");
+const customExerciseArea = document.getElementById("custom-exercise-area");
+const customExerciseName = document.getElementById("custom-exercise-name");
 const recordAmountInput = document.getElementById("record-amount");
 const recordAmountLabel = document.getElementById("record-amount-label");
 const recordUnit = document.getElementById("record-unit");
+const timerDisplay = document.getElementById("timer-display");
+const targetScoreText = document.getElementById("target-score");
+const currentScoreText = document.getElementById("current-score");
+const achievementRateText = document.getElementById("achievement-rate");
+const goalStatus = document.getElementById("goal-status");
+
+const targetScore = 100;
+const exerciseCoefficients = {
+  "腕立て": { time: 10, count: 2 },
+  "腹筋": { time: 8, count: 1.5 },
+  "スクワット": { time: 8, count: 1.5 },
+  "プランク": { time: 12, count: 0 },
+  "ストレッチ": { time: 3, count: 0 },
+  "自由種目": { time: 5, count: 1 }
+};
+const effortMultipliers = {
+  1: 0.8,
+  2: 0.9,
+  3: 1,
+  4: 1.1,
+  5: 1.2
+};
 
 let selectedMusicUrl = "";
 let historyCount = 0;
-
-function getSelectedMenus() {
-  const checkedMenus = document.querySelectorAll('input[name="menu"]:checked');
-  return Array.from(checkedMenus).map((menu) => menu.value);
-}
+let currentScore = 0;
+let timerState = "stopped";
+let elapsedSeconds = 0;
+let timerId = null;
 
 function getSelectedExercise() {
+  if (exerciseSelect.value === "custom") {
+    return customExerciseName.value.trim();
+  }
+
   return exerciseSelect.value;
+}
+
+function getTodayText() {
+  const today = new Date();
+  return today.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+}
+
+function handleExerciseChange() {
+  const isCustom = exerciseSelect.value === "custom";
+  customExerciseArea.classList.toggle("hidden", !isCustom);
+
+  if (!isCustom) {
+    customExerciseName.value = "";
+  }
 }
 
 function getRecordType() {
@@ -31,6 +76,10 @@ function getRecordType() {
 }
 
 function getRecordAmount() {
+  if (getRecordType() === "time" && elapsedSeconds > 0) {
+    return String(getElapsedMinutes());
+  }
+
   return recordAmountInput.value.trim();
 }
 
@@ -66,8 +115,97 @@ function updateRecordUnit() {
   const unit = getRecordUnit(recordType);
 
   recordAmountLabel.textContent = recordType === "count" ? "回数" : "時間";
-  recordAmountInput.placeholder = recordType === "count" ? "10" : "15";
+  recordAmountInput.placeholder = recordType === "count" ? "10" : "タイマーから反映";
+  recordAmountInput.readOnly = recordType === "time";
   recordUnit.textContent = unit;
+
+  if (recordType === "time") {
+    recordAmountInput.value = elapsedSeconds > 0 ? getElapsedMinutes() : "";
+  }
+}
+
+function formatElapsedTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function getElapsedMinutes() {
+  return Math.round((elapsedSeconds / 60) * 10) / 10;
+}
+
+function updateTimerDisplay() {
+  timerDisplay.textContent = formatElapsedTime(elapsedSeconds);
+
+  if (getRecordType() === "time") {
+    recordAmountInput.value = elapsedSeconds > 0 ? getElapsedMinutes() : "";
+  }
+}
+
+function startTimer() {
+  timerState = "running";
+  startWorkoutButton.textContent = "一時停止";
+  trainerComment.textContent = "スタート！タイマーを見ながら、今の種目に集中しよう。";
+  showMessage("タイマーを開始しました。", true);
+
+  if (timerId === null) {
+    timerId = setInterval(() => {
+      elapsedSeconds += 1;
+      updateTimerDisplay();
+    }, 1000);
+  }
+}
+
+function pauseTimer() {
+  timerState = "paused";
+  startWorkoutButton.textContent = "再開";
+  trainerComment.textContent = "一時停止中だよ。息を整えたら再開しよう。";
+  showMessage("タイマーを一時停止しました。", true);
+
+  clearInterval(timerId);
+  timerId = null;
+}
+
+function resetTimer() {
+  clearInterval(timerId);
+  timerId = null;
+  timerState = "stopped";
+  elapsedSeconds = 0;
+  startWorkoutButton.textContent = "筋トレ開始";
+  updateTimerDisplay();
+}
+
+function handleWorkoutButtonClick() {
+  if (timerState === "running") {
+    pauseTimer();
+    return;
+  }
+
+  startTimer();
+}
+
+function getExerciseCoefficient(exercise, recordType) {
+  const coefficients = exerciseCoefficients[exercise] || exerciseCoefficients["自由種目"];
+  return coefficients[recordType];
+}
+
+function getEffortMultiplier(effort) {
+  return effortMultipliers[effort] || 1;
+}
+
+function calculateScore(exercise, recordType, amount, effort) {
+  const coefficient = getExerciseCoefficient(exercise, recordType);
+  const multiplier = getEffortMultiplier(effort);
+  return Math.round(Number(amount) * coefficient * multiplier);
+}
+
+function updateGoalCard() {
+  const achievementRate = Math.min(Math.round((currentScore / targetScore) * 100), 999);
+
+  targetScoreText.textContent = targetScore;
+  currentScoreText.textContent = currentScore;
+  achievementRateText.textContent = `${achievementRate}%`;
+  goalStatus.textContent = achievementRate >= 100 ? "達成" : "挑戦中";
 }
 
 function handleMusicFileChange() {
@@ -97,28 +235,33 @@ function playSelectedMusic() {
     });
 }
 
-function startWorkout() {
-  trainerComment.textContent = "スタート！無理しすぎず、最後まで一緒にやり切ろう。";
-  showMessage("筋トレを開始しました。", true);
-}
-
-function addHistoryRecord(exercise, recordType, amount, effort) {
+function addHistoryRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score) {
   historyCount += 1;
   emptyHistory.classList.add("hidden");
 
   const historyItem = document.createElement("li");
   const title = document.createElement("strong");
-  const menuText = document.createElement("span");
+  const dateText = document.createElement("span");
+  const exerciseText = document.createElement("span");
   const detailText = document.createElement("span");
+  const scoreText = document.createElement("span");
 
   historyItem.className = "history-item";
   title.textContent = `種目ログ ${historyCount}`;
-  menuText.textContent = `種目: ${exercise}`;
+  dateText.textContent = `日付: ${getTodayText()}`;
+  exerciseText.textContent = `種目: ${exercise}`;
   detailText.textContent = `記録: ${amount}${getRecordUnit(recordType)} / きつさ: ${effort}`;
+  scoreText.textContent = `簡易スコア: ${score}`;
+
+  if (recordType === "count") {
+    detailText.textContent += ` / 経過時間: ${formatElapsedTime(savedElapsedSeconds)}`;
+  }
 
   historyItem.appendChild(title);
-  historyItem.appendChild(menuText);
+  historyItem.appendChild(dateText);
+  historyItem.appendChild(exerciseText);
   historyItem.appendChild(detailText);
+  historyItem.appendChild(scoreText);
   historyList.prepend(historyItem);
 }
 
@@ -137,6 +280,7 @@ function saveTodayRecord() {
   const recordType = getRecordType();
   const amount = getRecordAmount();
   const effort = getSelectedEffort();
+  const savedElapsedSeconds = elapsedSeconds;
   const errorMessage = validateRecord(exercise, amount, recordType);
 
   if (errorMessage !== "") {
@@ -144,18 +288,27 @@ function saveTodayRecord() {
     return;
   }
 
-  addHistoryRecord(exercise, recordType, amount, effort);
+  const score = calculateScore(exercise, recordType, amount, effort);
+  currentScore += score;
+
+  addHistoryRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score);
+  updateGoalCard();
+  resetTimer();
   disableSaveButtonTemporarily();
-  trainerComment.textContent = "種目ログを記録できたよ。今日の1本、ちゃんと積み上がってるね。";
+  trainerComment.textContent = "種目ログを記録できたよ。今日の目標にも近づいたね。";
   showMessage("種目ログを履歴に追加しました。", true);
 }
 
 musicFileInput.addEventListener("change", handleMusicFileChange);
 playMusicButton.addEventListener("click", playSelectedMusic);
-startWorkoutButton.addEventListener("click", startWorkout);
+startWorkoutButton.addEventListener("click", handleWorkoutButtonClick);
 saveRecordButton.addEventListener("click", saveTodayRecord);
+exerciseSelect.addEventListener("change", handleExerciseChange);
 document.querySelectorAll('input[name="record-type"]').forEach((recordTypeInput) => {
   recordTypeInput.addEventListener("change", updateRecordUnit);
 });
 
+handleExerciseChange();
 updateRecordUnit();
+updateGoalCard();
+updateTimerDisplay();
