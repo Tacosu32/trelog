@@ -1,3 +1,6 @@
+const storageKey = "trelog_records";
+const targetScore = 100;
+
 const musicFileInput = document.getElementById("music-file");
 const musicFileName = document.getElementById("music-file-name");
 const musicPlayer = document.getElementById("music-player");
@@ -19,15 +22,19 @@ const targetScoreText = document.getElementById("target-score");
 const currentScoreText = document.getElementById("current-score");
 const achievementRateText = document.getElementById("achievement-rate");
 const goalStatus = document.getElementById("goal-status");
+const goalRecommendation = document.getElementById("goal-recommendation");
+const todayLabel = document.getElementById("today-label");
+const streakDaysText = document.getElementById("streak-days");
+const levelDisplay = document.getElementById("level-display");
+const totalExpText = document.getElementById("total-exp");
 
-const targetScore = 100;
 const exerciseCoefficients = {
-  "腕立て": { time: 10, count: 2 },
-  "腹筋": { time: 8, count: 1.5 },
-  "スクワット": { time: 8, count: 1.5 },
-  "プランク": { time: 12, count: 0 },
-  "ストレッチ": { time: 3, count: 0 },
-  "自由種目": { time: 5, count: 1 }
+  "腕立て": { time: 10, reps: 2 },
+  "腹筋": { time: 8, reps: 1.5 },
+  "スクワット": { time: 8, reps: 1.5 },
+  "プランク": { time: 12, reps: 0 },
+  "ストレッチ": { time: 3, reps: 0 },
+  "自由種目": { time: 5, reps: 1 }
 };
 const effortMultipliers = {
   1: 0.8,
@@ -37,9 +44,8 @@ const effortMultipliers = {
   5: 1.2
 };
 
+let records = [];
 let selectedMusicUrl = "";
-let historyCount = 0;
-let currentScore = 0;
 let timerState = "stopped";
 let elapsedSeconds = 0;
 let timerId = null;
@@ -52,13 +58,39 @@ function getSelectedExercise() {
   return exerciseSelect.value;
 }
 
+function getExerciseId() {
+  if (exerciseSelect.value === "custom") {
+    const name = customExerciseName.value.trim();
+    return name === "" ? "" : `custom-${name}`;
+  }
+
+  return exerciseSelect.value;
+}
+
 function getTodayText() {
-  const today = new Date();
-  return today.toLocaleDateString("ja-JP", {
+  return new Date().toLocaleDateString("ja-JP", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
   });
+}
+
+function getTodayDateString() {
+  return formatDateString(new Date());
+}
+
+function formatDateString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(dateText, days) {
+  const parts = dateText.split("-").map(Number);
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  date.setDate(date.getDate() + days);
+  return formatDateString(date);
 }
 
 function handleExerciseChange() {
@@ -68,6 +100,8 @@ function handleExerciseChange() {
   if (!isCustom) {
     customExerciseName.value = "";
   }
+
+  updateGoalRecommendation();
 }
 
 function getRecordType() {
@@ -107,21 +141,23 @@ function validateRecord(exercise, amount, recordType) {
 }
 
 function getRecordUnit(recordType) {
-  return recordType === "count" ? "回" : "分";
+  return recordType === "reps" ? "回" : "分";
 }
 
 function updateRecordUnit() {
   const recordType = getRecordType();
   const unit = getRecordUnit(recordType);
 
-  recordAmountLabel.textContent = recordType === "count" ? "回数" : "時間";
-  recordAmountInput.placeholder = recordType === "count" ? "10" : "タイマーから反映";
+  recordAmountLabel.textContent = recordType === "reps" ? "回数" : "時間";
+  recordAmountInput.placeholder = recordType === "reps" ? "10" : "タイマーから反映";
   recordAmountInput.readOnly = recordType === "time";
   recordUnit.textContent = unit;
 
   if (recordType === "time") {
     recordAmountInput.value = elapsedSeconds > 0 ? getElapsedMinutes() : "";
   }
+
+  updateGoalRecommendation();
 }
 
 function formatElapsedTime(totalSeconds) {
@@ -131,7 +167,7 @@ function formatElapsedTime(totalSeconds) {
 }
 
 function getElapsedMinutes() {
-  return Math.round((elapsedSeconds / 60) * 10) / 10;
+  return Math.ceil((elapsedSeconds / 60) * 10) / 10;
 }
 
 function updateTimerDisplay() {
@@ -199,13 +235,145 @@ function calculateScore(exercise, recordType, amount, effort) {
   return Math.round(Number(amount) * coefficient * multiplier);
 }
 
-function updateGoalCard() {
-  const achievementRate = Math.min(Math.round((currentScore / targetScore) * 100), 999);
+function calculateNeededAmount(exercise, recordType, effort) {
+  const remainingScore = Math.max(targetScore - calculateTodayScore(), 0);
+  const coefficient = getExerciseCoefficient(exercise, recordType);
+  const multiplier = getEffortMultiplier(effort);
 
-  targetScoreText.textContent = targetScore;
-  currentScoreText.textContent = currentScore;
+  if (remainingScore <= 0) {
+    return 0;
+  }
+
+  if (coefficient <= 0 || multiplier <= 0) {
+    return null;
+  }
+
+  return Math.ceil(remainingScore / coefficient / multiplier);
+}
+
+function updateGoalRecommendation() {
+  const exercise = getSelectedExercise();
+  const recordType = getRecordType();
+  const effort = getSelectedEffort();
+  const unit = getRecordUnit(recordType);
+  const modeText = recordType === "reps" ? "回数" : "時間";
+  const neededAmount = calculateNeededAmount(exercise || "自由種目", recordType, effort);
+
+  if (calculateTodayScore() >= targetScore) {
+    goalRecommendation.textContent = "今日の目標は達成済みです！";
+    return;
+  }
+
+  if (exercise === "") {
+    goalRecommendation.textContent = "種目を選ぶと、目標到達までの目安を表示します";
+    return;
+  }
+
+  if (neededAmount === null) {
+    goalRecommendation.textContent = `${exercise} / ${modeText}ではスコアが増えません`;
+    return;
+  }
+
+  goalRecommendation.textContent = `あと${neededAmount}${unit}で今日の目標に到達します`;
+}
+
+function calculateTodayScore() {
+  const today = getTodayDateString();
+  return records
+    .filter((record) => record.date === today)
+    .reduce((total, record) => total + Number(record.score || 0), 0);
+}
+
+function calculateTotalExp() {
+  return records.reduce((total, record) => total + Number(record.exp || 0), 0);
+}
+
+function calculateLevel(totalExp) {
+  return Math.floor(totalExp / 100) + 1;
+}
+
+function calculateStreakDays() {
+  const recordedDates = new Set(records.map((record) => record.date));
+  const today = getTodayDateString();
+  const yesterday = addDays(today, -1);
+  let cursor = "";
+
+  if (recordedDates.has(today)) {
+    cursor = today;
+  } else if (recordedDates.has(yesterday)) {
+    cursor = yesterday;
+  } else {
+    return 0;
+  }
+
+  let streak = 0;
+  while (recordedDates.has(cursor)) {
+    streak += 1;
+    cursor = addDays(cursor, -1);
+  }
+
+  return streak;
+}
+
+function updateGoalCard() {
+  const todayScore = calculateTodayScore();
+  const achievementRate = Math.min(Math.round((todayScore / targetScore) * 100), 999);
+
+  targetScoreText.textContent = `${targetScore}`;
+  currentScoreText.textContent = `${todayScore}`;
   achievementRateText.textContent = `${achievementRate}%`;
   goalStatus.textContent = achievementRate >= 100 ? "達成" : "挑戦中";
+  updateGoalRecommendation();
+}
+
+function updateDashboard() {
+  const totalExp = calculateTotalExp();
+  totalExpText.textContent = `${totalExp}`;
+  levelDisplay.textContent = `${calculateLevel(totalExp)}`;
+  streakDaysText.textContent = `${calculateStreakDays()}日`;
+}
+
+function updateAllStats() {
+  updateGoalCard();
+  updateDashboard();
+}
+
+function loadRecords() {
+  const savedRecords = localStorage.getItem(storageKey);
+
+  if (!savedRecords) {
+    return [];
+  }
+
+  try {
+    const parsedRecords = JSON.parse(savedRecords);
+    return Array.isArray(parsedRecords) ? parsedRecords : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveRecords() {
+  localStorage.setItem(storageKey, JSON.stringify(records));
+}
+
+function createRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score) {
+  const now = new Date();
+  return {
+    id: `record-${now.getTime()}`,
+    date: getTodayDateString(),
+    exerciseId: getExerciseId() || exercise,
+    exerciseName: exercise,
+    mode: recordType,
+    value: Number(amount),
+    unit: getRecordUnit(recordType),
+    intensity: Number(effort),
+    elapsedSeconds: savedElapsedSeconds,
+    score,
+    exp: score,
+    musicFileName: musicFileInput.files[0] ? musicFileInput.files[0].name : "",
+    createdAt: now.toISOString()
+  };
 }
 
 function handleMusicFileChange() {
@@ -235,8 +403,7 @@ function playSelectedMusic() {
     });
 }
 
-function addHistoryRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score) {
-  historyCount += 1;
+function addHistoryRecord(record, index) {
   emptyHistory.classList.add("hidden");
 
   const historyItem = document.createElement("li");
@@ -247,14 +414,18 @@ function addHistoryRecord(exercise, recordType, amount, effort, savedElapsedSeco
   const scoreText = document.createElement("span");
 
   historyItem.className = "history-item";
-  title.textContent = `種目ログ ${historyCount}`;
-  dateText.textContent = `日付: ${getTodayText()}`;
-  exerciseText.textContent = `種目: ${exercise}`;
-  detailText.textContent = `記録: ${amount}${getRecordUnit(recordType)} / きつさ: ${effort}`;
-  scoreText.textContent = `簡易スコア: ${score}`;
+  title.textContent = `種目ログ ${index + 1}`;
+  dateText.textContent = `日付: ${record.date}`;
+  exerciseText.textContent = `種目: ${record.exerciseName}`;
+  detailText.textContent = `記録: ${record.value}${record.unit} / きつさ: ${record.intensity}`;
+  scoreText.textContent = `スコア: ${record.score} / EXP: ${record.exp}`;
 
-  if (recordType === "count") {
-    detailText.textContent += ` / 経過時間: ${formatElapsedTime(savedElapsedSeconds)}`;
+  if (record.mode === "reps") {
+    detailText.textContent += ` / 経過時間: ${formatElapsedTime(record.elapsedSeconds)}`;
+  }
+
+  if (record.musicFileName) {
+    scoreText.textContent += ` / 音楽: ${record.musicFileName}`;
   }
 
   historyItem.appendChild(title);
@@ -263,6 +434,18 @@ function addHistoryRecord(exercise, recordType, amount, effort, savedElapsedSeco
   historyItem.appendChild(detailText);
   historyItem.appendChild(scoreText);
   historyList.prepend(historyItem);
+}
+
+function renderHistory() {
+  historyList.innerHTML = "";
+  emptyHistory.classList.toggle("hidden", records.length > 0);
+
+  records
+    .slice()
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .forEach((record, index) => {
+      addHistoryRecord(record, index);
+    });
 }
 
 function disableSaveButtonTemporarily() {
@@ -289,14 +472,26 @@ function saveTodayRecord() {
   }
 
   const score = calculateScore(exercise, recordType, amount, effort);
-  currentScore += score;
+  const record = createRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score);
 
-  addHistoryRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score);
-  updateGoalCard();
+  records.push(record);
+  saveRecords();
+  renderHistory();
+  updateAllStats();
   resetTimer();
   disableSaveButtonTemporarily();
-  trainerComment.textContent = "種目ログを記録できたよ。今日の目標にも近づいたね。";
-  showMessage("種目ログを履歴に追加しました。", true);
+  trainerComment.textContent = "種目ログを記録できたよ。EXPと連続日数にも反映したよ。";
+  showMessage("種目ログを保存しました。", true);
+}
+
+function initializeApp() {
+  records = loadRecords();
+  todayLabel.textContent = getTodayText();
+  handleExerciseChange();
+  updateRecordUnit();
+  updateTimerDisplay();
+  renderHistory();
+  updateAllStats();
 }
 
 musicFileInput.addEventListener("change", handleMusicFileChange);
@@ -304,11 +499,13 @@ playMusicButton.addEventListener("click", playSelectedMusic);
 startWorkoutButton.addEventListener("click", handleWorkoutButtonClick);
 saveRecordButton.addEventListener("click", saveTodayRecord);
 exerciseSelect.addEventListener("change", handleExerciseChange);
+customExerciseName.addEventListener("input", updateGoalRecommendation);
+recordAmountInput.addEventListener("input", updateGoalRecommendation);
 document.querySelectorAll('input[name="record-type"]').forEach((recordTypeInput) => {
   recordTypeInput.addEventListener("change", updateRecordUnit);
 });
+document.querySelectorAll('input[name="effort"]').forEach((effortInput) => {
+  effortInput.addEventListener("change", updateGoalRecommendation);
+});
 
-handleExerciseChange();
-updateRecordUnit();
-updateGoalCard();
-updateTimerDisplay();
+initializeApp();

@@ -13,21 +13,21 @@
         <p class="eyebrow">今日も一緒に</p>
         <h1>トレログ</h1>
       </div>
-      <p class="today-label">α版</p>
+      <p id="today-label" class="today-label">α版</p>
     </header>
 
     <section class="dashboard" aria-label="ダッシュボード">
       <div class="status-card status-card-large">
         <span>連続日数</span>
-        <strong>3日</strong>
+        <strong id="streak-days">0日</strong>
       </div>
       <div class="status-card">
         <span>Lv</span>
-        <strong>5</strong>
+        <strong id="level-display">1</strong>
       </div>
       <div class="status-card">
         <span>EXP</span>
-        <strong>420</strong>
+        <strong id="total-exp">0</strong>
       </div>
       <div class="status-card">
         <span>今週ランク</span>
@@ -99,7 +99,7 @@
       <fieldset class="record-type-group">
         <legend>記録方式</legend>
         <label><input type="radio" name="record-type" value="time" checked> 時間</label>
-        <label><input type="radio" name="record-type" value="count"> 回数</label>
+        <label><input type="radio" name="record-type" value="reps"> 回数</label>
       </fieldset>
 
       <label id="record-amount-label" class="field-label" for="record-amount">時間</label>

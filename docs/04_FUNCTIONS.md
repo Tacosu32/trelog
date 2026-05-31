@@ -7,22 +7,40 @@
 保存対象として選択された1つの種目を返す。
 「その他 / 新規追加」が選択されている場合は、新しい種目名入力欄の値を返す。
 
+### getExerciseId()
+
+保存用の種目IDを返す。
+自由種目の場合は `custom-種目名` の形式にする。
+
 ### getTodayText()
 
-履歴表示に使う今日の日付を返す。
+画面表示に使う今日の日付を返す。
+
+### getTodayDateString()
+
+保存・集計に使う今日の日付を `YYYY-MM-DD` 形式で返す。
+
+### formatDateString(date)
+
+Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
+
+### addDays(dateText, days)
+
+`YYYY-MM-DD` 形式の日付に日数を足し引きした日付を返す。
+継続日数の計算に使う。
 
 ### handleExerciseChange()
 
-種目プルダウンの変更に応じて、新しい種目名入力欄の表示・非表示を切り替える。
+種目プルダウンの変更に応じて、新しい種目名入力欄の表示・非表示を切り替え、目標到達目安を更新する。
 
 ### getRecordType()
 
 記録方式として選択されている値を返す。
-値は時間式の `time` または回数式の `count`。
+値は時間式の `time` または回数式の `reps`。
 
 ### getRecordAmount()
 
-分または回の入力欄から、入力された値を文字列で返す。
+分または回の入力値を返す。
 時間式でタイマーが動いていた場合は、タイマーの経過分を記録値として返す。
 
 ### getSelectedEffort()
@@ -44,7 +62,7 @@
 
 ### updateRecordUnit()
 
-記録方式が切り替わったときに、入力欄のラベルとプレースホルダーを更新する。
+記録方式が切り替わったときに、入力欄のラベル、プレースホルダー、単位を更新する。
 
 ### formatElapsedTime(totalSeconds)
 
@@ -87,9 +105,55 @@
 
 簡易スコア仕様に従って、1つの種目ログのスコアを計算する。
 
+### calculateNeededAmount(exercise, recordType, effort)
+
+今日の目標到達までに必要な分または回数を計算する。
+残りスコア ÷ 種目係数 ÷ きつさ補正を切り上げる。
+
+### updateGoalRecommendation()
+
+現在の種目、記録方式、きつさ、今日のスコア、目標スコアに応じて、目標到達目安を更新する。
+
+### calculateTodayScore()
+
+今日の日付のログだけを集計し、今日の現在スコアを返す。
+
+### calculateTotalExp()
+
+全ログのEXPを合計して返す。
+
+### calculateLevel(totalExp)
+
+`Math.floor(totalExp / 100) + 1` でレベルを計算する。
+
+### calculateStreakDays()
+
+記録が連続している日数を計算する。
+今日に記録があれば今日から、なければ昨日から数え、未記録日で終了する。
+
 ### updateGoalCard()
 
-今日の目標カードの現在スコアと達成率を更新する。
+今日の目標カードの現在スコア、達成率、目標到達目安を更新する。
+
+### updateDashboard()
+
+累計EXP、レベル、継続日数を画面に反映する。
+
+### updateAllStats()
+
+目標カードとダッシュボードをまとめて更新する。
+
+### loadRecords()
+
+localStorageの `trelog_records` から種目ログ配列を読み込む。
+
+### saveRecords()
+
+現在の種目ログ配列をlocalStorageの `trelog_records` に保存する。
+
+### createRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score)
+
+保存形式に合わせた1件分の種目ログオブジェクトを作成する。
 
 ### handleMusicFileChange()
 
@@ -100,17 +164,23 @@
 選択済みの音楽ファイルを再生する。
 音楽が未選択の場合はエラーメッセージを表示する。
 
-### addHistoryRecord(exercise, recordType, amount, effort, elapsedSeconds, score)
+### addHistoryRecord(record, index)
 
-保存された1種目ログを履歴エリアに1件追加する。
-日付、種目、記録値、きつさ、簡易スコアを表示する。
-回数式の場合は、タイマーの経過時間を補助情報として表示する。
+保存済みの1種目ログを履歴エリアに1件追加する。
+
+### renderHistory()
+
+localStorageから読み込んだ記録を含め、現在の種目ログ配列を履歴エリアに再描画する。
 
 ### saveTodayRecord()
 
-現在の入力内容を取得し、入力チェックと簡易スコア計算を行ったうえで、1種目ログを履歴に追加する。
+現在の入力内容を取得し、入力チェック、簡易スコア計算、localStorage保存、履歴再描画、各種ステータス更新を行う。
 保存後はタイマーをリセットする。
 
 ### disableSaveButtonTemporarily()
 
 同じ内容の連続保存を防ぐため、保存後2秒間だけ保存ボタンを無効化する。
+
+### initializeApp()
+
+起動時にlocalStorageから記録を読み込み、日付、履歴、今日のスコア、EXP、レベル、継続日数を画面に反映する。

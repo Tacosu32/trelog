@@ -2,7 +2,8 @@
 
 ## Alpha Data Policy
 
-α版では最終的にlocalStorageへ保存する予定だが、現在の段階では画面上の仮表示だけを行う。
+α版ではlocalStorageへ保存する。
+保存キーは `trelog_records` とする。
 
 ## ExerciseLog
 
@@ -10,16 +11,19 @@
 
 | フィールド | 内容 | 例 |
 | --- | --- | --- |
-| id | ログを識別するID | `log-1` |
-| date | 記録日 | `2026-05-31` |
-| exercise | 種目名 | `腕立て` |
-| recordType | 記録方式。時間または回数 | `time` / `count` |
-| amount | 入力値 | `15` |
+| id | ログを識別するID | `record-1717240000000` |
+| date | 記録日 | `2026-06-01` |
+| exerciseId | 種目ID | `腕立て` |
+| exerciseName | 種目名 | `腕立て` |
+| mode | 記録方式。時間または回数 | `time` / `reps` |
+| value | 入力値 | `15` |
 | unit | 単位 | `分` / `回` |
 | elapsedSeconds | タイマーの経過秒数 | `180` |
-| effort | きつさ | `3` |
+| intensity | きつさ | `3` |
 | score | 今日の目標用の簡易スコア | `120` |
-| exp | 獲得EXP。今後実装 | `0` |
+| exp | 獲得EXP。現在は簡易スコアと同じ値 | `120` |
+| musicFileName | 選択した音楽ファイル名 | `song.mp3` |
+| createdAt | 作成日時 | `2026-06-01T10:00:00.000Z` |
 
 ## Daily Achievement
 
@@ -32,7 +36,7 @@
 | フィールド | 内容 | 例 |
 | --- | --- | --- |
 | targetScore | 今日の目標スコア | `100` |
-| currentScore | 今日保存した種目ログの簡易スコア合計 | `45` |
+| currentScore | 今日の日付の種目ログの簡易スコア合計 | `45` |
 | achievementRate | 達成率 | `45%` |
 | recommendation | おすすめ目安 | `腕立て10回 + ストレッチ5分` |
 
@@ -68,3 +72,17 @@
 | 3 | 1.0 |
 | 4 | 1.1 |
 | 5 | 1.2 |
+
+## Level
+
+全ログのEXPを合計し、以下の式でレベルを計算する。
+
+```js
+level = Math.floor(totalExp / 100) + 1
+```
+
+## Streak
+
+連続日数は記録日をもとに計算する。
+今日にログがあれば今日から数え、今日にログがなく昨日にログがある場合は昨日から数える。
+途中に未記録日があればそこで終了する。
