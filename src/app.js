@@ -1,3 +1,4 @@
+const DEBUG_MODE = true;
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const targetScore = 100;
@@ -28,8 +29,16 @@ const todayLabel = document.getElementById("today-label");
 const streakDaysText = document.getElementById("streak-days");
 const levelDisplay = document.getElementById("level-display");
 const totalExpText = document.getElementById("total-exp");
-const freezeTicketsText = document.getElementById("freeze-tickets");
-const frozenDatesArea = document.getElementById("frozen-dates");
+const restTicketsText = document.getElementById("rest-tickets");
+const restDatesArea = document.getElementById("rest-dates");
+const weeklyRankText = document.getElementById("weekly-rank");
+const weeklyRankDetail = document.getElementById("weekly-rank-detail");
+const levelProgressTitle = document.getElementById("level-progress-title");
+const levelExpText = document.getElementById("level-exp-text");
+const nextLevelExpText = document.getElementById("next-level-exp");
+const levelProgressFill = document.getElementById("level-progress-fill");
+const debugPanel = document.getElementById("debug-panel");
+const debugStorageOutput = document.getElementById("debug-storage-output");
 
 const exerciseCoefficients = {
   "腕立て": { time: 10, reps: 2 },
@@ -48,11 +57,7 @@ const effortMultipliers = {
 };
 
 let records = [];
-let appState = {
-  freezeTickets: 2,
-  frozenDates: [],
-  claimedGoalRewardDates: []
-};
+let appState = getDefaultState();
 let selectedMusicUrl = "";
 let timerState = "stopped";
 let elapsedSeconds = 0;
@@ -270,6 +275,23 @@ function calculateNeededAmount(exercise, recordType, effort) {
   return Math.ceil(remainingScore / coefficient / multiplier);
 }
 
+function markGoalRewardIfNeeded() {
+  const today = getTodayDateString();
+
+  if (calculateTodayScore() < targetScore) {
+    return false;
+  }
+
+  if (appState.claimedGoalRewardDates.includes(today)) {
+    return false;
+  }
+
+  appState.claimedGoalRewardDates.push(today);
+  saveState();
+  updateTrainerComment("今日の目標達成！休憩チケットは増えないけど、達成記録はしっかり残したよ。すごい！");
+  return true;
+}
+
 function updateGoalRecommendation() {
   const exercise = getSelectedExercise();
   const recordType = getRecordType();
@@ -296,24 +318,6 @@ function updateGoalRecommendation() {
   goalRecommendation.textContent = `あと${neededAmount}${unit}で今日の目標に到達します`;
 }
 
-function claimGoalRewardIfNeeded() {
-  const today = getTodayDateString();
-
-  if (calculateTodayScore() < targetScore) {
-    return false;
-  }
-
-  if (appState.claimedGoalRewardDates.includes(today)) {
-    return false;
-  }
-
-  appState.freezeTickets += 1;
-  appState.claimedGoalRewardDates.push(today);
-  saveState();
-  updateTrainerComment("今日の目標達成！ごほうびに凍結チケットを1枚プレゼントしたよ。すごい！");
-  return true;
-}
-
 function calculateTodayScore() {
   const today = getTodayDateString();
   return records
@@ -329,23 +333,62 @@ function calculateLevel(totalExp) {
   return Math.floor(totalExp / 100) + 1;
 }
 
+function calculateLevelProgress(totalExp) {
+  const currentLevel = calculateLevel(totalExp);
+  const currentLevelStartExp = (currentLevel - 1) * 100;
+  const nextLevelExp = currentLevel * 100;
+  const progressExp = totalExp - currentLevelStartExp;
+  const requiredExp = nextLevelExp - totalExp;
+  const progressRate = progressExp / 100;
+
+  return {
+    currentLevel,
+    currentLevelStartExp,
+    nextLevelExp,
+    progressExp,
+    requiredExp,
+    progressRate
+  };
+}
+
+function claimLevelRewardsIfNeeded() {
+  const currentLevel = calculateLevel(calculateTotalExp());
+  const rewardedLevels = [];
+
+  for (let level = 5; level <= currentLevel; level += 5) {
+    if (!appState.claimedLevelRewards.includes(level)) {
+      appState.restTickets += 1;
+      appState.claimedLevelRewards.push(level);
+      rewardedLevels.push(level);
+    }
+  }
+
+  if (rewardedLevels.length > 0) {
+    appState.claimedLevelRewards.sort((a, b) => a - b);
+    saveState();
+    updateTrainerComment(`Lv.${rewardedLevels.join("、Lv.")}到達！休憩チケットを${rewardedLevels.length}枚プレゼントしたよ。`);
+  }
+
+  return rewardedLevels;
+}
+
 function getRecordedDateSet() {
   return new Set(records.map((record) => record.date));
 }
 
-function getFrozenDateSet() {
-  return new Set(appState.frozenDates);
+function getRestDateSet() {
+  return new Set(appState.restDates);
 }
 
 function getContinuityDateSet() {
-  return new Set([...getRecordedDateSet(), ...getFrozenDateSet()]);
+  return new Set([...getRecordedDateSet(), ...getRestDateSet()]);
 }
 
 function hasContinuityBefore(dateText, continuityDates) {
   return Array.from(continuityDates).some((date) => date < dateText);
 }
 
-function consumeFreezeTicketsForMissedDays() {
+function consumeRestTicketsForMissedDays() {
   const continuityDates = getContinuityDateSet();
   let cursor = records.some((record) => record.date === getTodayDateString())
     ? getTodayDateString()
@@ -358,21 +401,21 @@ function consumeFreezeTicketsForMissedDays() {
       continue;
     }
 
-    if (appState.freezeTickets <= 0) {
+    if (appState.restTickets <= 0) {
       break;
     }
 
-    appState.frozenDates.push(cursor);
-    appState.freezeTickets -= 1;
+    appState.restDates.push(cursor);
+    appState.restTickets -= 1;
     continuityDates.add(cursor);
     usedCount += 1;
     cursor = addDays(cursor, -1);
   }
 
   if (usedCount > 0) {
-    appState.frozenDates = Array.from(new Set(appState.frozenDates)).sort();
+    appState.restDates = Array.from(new Set(appState.restDates)).sort();
     saveState();
-    updateTrainerComment(`未記録日を${usedCount}日分、凍結チケットで守ったよ。続いてる流れ、大事にしよう。`);
+    updateTrainerComment(`未記録日を${usedCount}日分、休憩チケットで守ったよ。続いてる流れ、大事にしよう。`);
   }
 
   return usedCount;
@@ -401,45 +444,104 @@ function calculateStreakDays() {
   return streak;
 }
 
+function getWeekStartDate(date) {
+  const weekStart = new Date(date);
+  const day = weekStart.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  weekStart.setDate(weekStart.getDate() + diff);
+  return formatDateString(weekStart);
+}
+
+function calculateWeeklyStats() {
+  const weekStart = getWeekStartDate(new Date());
+  const weekEnd = addDays(weekStart, 6);
+  const weeklyRecords = records.filter((record) => record.date >= weekStart && record.date <= weekEnd);
+  const recordedDays = new Set(weeklyRecords.map((record) => record.date)).size;
+  const weeklyScore = weeklyRecords.reduce((total, record) => total + Number(record.score || 0), 0);
+
+  return {
+    recordedDays,
+    weeklyScore
+  };
+}
+
+function calculateWeeklyRank(recordedDays, weeklyScore) {
+  if (recordedDays >= 5 || weeklyScore >= 500) {
+    return "S";
+  }
+
+  if (recordedDays >= 4 || weeklyScore >= 350) {
+    return "A";
+  }
+
+  if (recordedDays >= 3 || weeklyScore >= 200) {
+    return "B";
+  }
+
+  if (recordedDays >= 1) {
+    return "C";
+  }
+
+  return "D";
+}
+
 function updateGoalCard() {
   const todayScore = calculateTodayScore();
   const achievementRate = Math.min(Math.round((todayScore / targetScore) * 100), 999);
+  const goalClaimed = appState.claimedGoalRewardDates.includes(getTodayDateString());
 
   targetScoreText.textContent = `${targetScore}`;
   currentScoreText.textContent = `${todayScore}`;
   achievementRateText.textContent = `${achievementRate}%`;
-  goalStatus.textContent = achievementRate >= 100 ? "達成" : "挑戦中";
+  goalStatus.textContent = achievementRate >= 100
+    ? goalClaimed ? "達成済み" : "達成"
+    : "挑戦中";
   updateGoalRecommendation();
+}
+
+function updateLevelProgress(totalExp) {
+  const progress = calculateLevelProgress(totalExp);
+
+  levelProgressTitle.textContent = `Lv.${progress.currentLevel}`;
+  levelExpText.textContent = `${totalExp} / ${progress.nextLevelExp} EXP`;
+  nextLevelExpText.textContent = `次のレベルまで ${progress.requiredExp} EXP`;
+  levelProgressFill.style.width = `${Math.min(progress.progressRate * 100, 100)}%`;
 }
 
 function updateDashboard() {
   const totalExp = calculateTotalExp();
+  const weeklyStats = calculateWeeklyStats();
+
   totalExpText.textContent = `${totalExp}`;
   levelDisplay.textContent = `${calculateLevel(totalExp)}`;
   streakDaysText.textContent = `${calculateStreakDays()}日`;
-  freezeTicketsText.textContent = `${appState.freezeTickets}枚`;
+  restTicketsText.textContent = `${appState.restTickets}枚`;
+  weeklyRankText.textContent = calculateWeeklyRank(weeklyStats.recordedDays, weeklyStats.weeklyScore);
+  weeklyRankDetail.textContent = `${weeklyStats.recordedDays}日 / ${weeklyStats.weeklyScore}pt`;
+  updateLevelProgress(totalExp);
 }
 
 function updateAllStats() {
   updateGoalCard();
   updateDashboard();
-  renderFrozenDates();
+  renderRestDates();
+  updateDebugStorageOutput();
 }
 
-function renderFrozenDates() {
-  frozenDatesArea.innerHTML = "";
+function renderRestDates() {
+  restDatesArea.innerHTML = "";
 
-  if (appState.frozenDates.length === 0) {
+  if (appState.restDates.length === 0) {
     return;
   }
 
-  appState.frozenDates
+  appState.restDates
     .slice()
     .sort()
     .forEach((date) => {
-      const frozenDate = document.createElement("span");
-      frozenDate.textContent = `凍結日：${date}`;
-      frozenDatesArea.appendChild(frozenDate);
+      const restDate = document.createElement("span");
+      restDate.textContent = `休憩日：${date}`;
+      restDatesArea.appendChild(restDate);
     });
 }
 
@@ -464,9 +566,28 @@ function saveRecords() {
 
 function getDefaultState() {
   return {
-    freezeTickets: 2,
-    frozenDates: [],
-    claimedGoalRewardDates: []
+    restTickets: 2,
+    restDates: [],
+    claimedGoalRewardDates: [],
+    claimedLevelRewards: []
+  };
+}
+
+function normalizeState(parsedState) {
+  const defaultState = getDefaultState();
+  return {
+    restTickets: Number(parsedState.restTickets ?? parsedState.freezeTickets ?? defaultState.restTickets),
+    restDates: Array.isArray(parsedState.restDates)
+      ? parsedState.restDates
+      : Array.isArray(parsedState.frozenDates)
+        ? parsedState.frozenDates
+        : defaultState.restDates,
+    claimedGoalRewardDates: Array.isArray(parsedState.claimedGoalRewardDates)
+      ? parsedState.claimedGoalRewardDates
+      : defaultState.claimedGoalRewardDates,
+    claimedLevelRewards: Array.isArray(parsedState.claimedLevelRewards)
+      ? parsedState.claimedLevelRewards
+      : defaultState.claimedLevelRewards
   };
 }
 
@@ -478,14 +599,7 @@ function loadState() {
   }
 
   try {
-    const parsedState = JSON.parse(savedState);
-    return {
-      freezeTickets: Number(parsedState.freezeTickets ?? 2),
-      frozenDates: Array.isArray(parsedState.frozenDates) ? parsedState.frozenDates : [],
-      claimedGoalRewardDates: Array.isArray(parsedState.claimedGoalRewardDates)
-        ? parsedState.claimedGoalRewardDates
-        : []
-    };
+    return normalizeState(JSON.parse(savedState));
   } catch (error) {
     return getDefaultState();
   }
@@ -511,6 +625,25 @@ function createRecord(exercise, recordType, amount, effort, savedElapsedSeconds,
     exp: score,
     musicFileName: musicFileInput.files[0] ? musicFileInput.files[0].name : "",
     createdAt: now.toISOString()
+  };
+}
+
+function createTestRecord(dateText) {
+  const createdAt = new Date(`${dateText}T12:00:00`);
+  return {
+    id: `test-${dateText}-${Date.now()}`,
+    date: dateText,
+    exerciseId: "debug-test",
+    exerciseName: "テスト記録",
+    mode: "reps",
+    value: 10,
+    unit: "回",
+    intensity: 3,
+    elapsedSeconds: 0,
+    score: 20,
+    exp: 20,
+    musicFileName: "",
+    createdAt: createdAt.toISOString()
   };
 }
 
@@ -614,15 +747,108 @@ function saveTodayRecord() {
 
   records.push(record);
   saveRecords();
-  const rewarded = claimGoalRewardIfNeeded();
+  const goalMarked = markGoalRewardIfNeeded();
+  const levelRewards = claimLevelRewardsIfNeeded();
   renderHistory();
   updateAllStats();
   resetTimer();
   disableSaveButtonTemporarily();
-  if (!rewarded) {
+
+  if (!goalMarked && levelRewards.length === 0) {
     updateTrainerComment("種目ログを記録できたよ。EXPと連続日数にも反映したよ。");
   }
+
   showMessage("種目ログを保存しました。", true);
+}
+
+function refreshAfterDebugAction(message) {
+  saveRecords();
+  saveState();
+  renderHistory();
+  updateAllStats();
+  showMessage(message, true);
+}
+
+function clearRecords() {
+  records = [];
+  localStorage.removeItem(storageKey);
+  renderHistory();
+  updateAllStats();
+  showMessage("記録データを削除しました。", true);
+}
+
+function clearState() {
+  appState = getDefaultState();
+  localStorage.removeItem(stateStorageKey);
+  saveState();
+  updateAllStats();
+  showMessage("状態データを削除しました。", true);
+}
+
+function clearAllData() {
+  records = [];
+  appState = getDefaultState();
+  localStorage.removeItem(storageKey);
+  localStorage.removeItem(stateStorageKey);
+  saveState();
+  renderHistory();
+  updateAllStats();
+  showMessage("全データを削除しました。", true);
+}
+
+function addRestTicket() {
+  appState.restTickets += 1;
+  refreshAfterDebugAction("休憩チケットを1枚追加しました。");
+}
+
+function zeroRestTickets() {
+  appState.restTickets = 0;
+  refreshAfterDebugAction("休憩チケットを0枚にしました。");
+}
+
+function addTestRecord(dateText) {
+  if (!dateText) {
+    showMessage("テスト記録の日付を選んでください。", false);
+    return;
+  }
+
+  records.push(createTestRecord(dateText));
+  claimLevelRewardsIfNeeded();
+  refreshAfterDebugAction(`${dateText} のテスト記録を追加しました。`);
+}
+
+function updateDebugStorageOutput() {
+  if (!DEBUG_MODE || !debugStorageOutput) {
+    return;
+  }
+
+  debugStorageOutput.textContent = JSON.stringify({
+    trelog_records: JSON.parse(localStorage.getItem(storageKey) || "[]"),
+    trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null")
+  }, null, 2);
+}
+
+function setupDebugPanel() {
+  if (!DEBUG_MODE) {
+    debugPanel.classList.add("hidden");
+    return;
+  }
+
+  document.getElementById("debug-clear-records").addEventListener("click", clearRecords);
+  document.getElementById("debug-clear-state").addEventListener("click", clearState);
+  document.getElementById("debug-clear-all").addEventListener("click", clearAllData);
+  document.getElementById("debug-add-rest-ticket").addEventListener("click", addRestTicket);
+  document.getElementById("debug-zero-rest-ticket").addEventListener("click", zeroRestTickets);
+  document.getElementById("debug-add-date-record").addEventListener("click", () => {
+    addTestRecord(document.getElementById("debug-test-date").value);
+  });
+  document.getElementById("debug-add-yesterday-record").addEventListener("click", () => {
+    addTestRecord(addDays(getTodayDateString(), -1));
+  });
+  document.getElementById("debug-add-three-days-record").addEventListener("click", () => {
+    addTestRecord(addDays(getTodayDateString(), -3));
+  });
+  document.getElementById("debug-refresh-storage").addEventListener("click", updateDebugStorageOutput);
 }
 
 function initializeApp() {
@@ -630,11 +856,13 @@ function initializeApp() {
   appState = loadState();
   saveState();
   todayLabel.textContent = getTodayText();
+  setupDebugPanel();
   handleExerciseChange();
   updateRecordUnit();
   updateTimerDisplay();
-  consumeFreezeTicketsForMissedDays();
-  claimGoalRewardIfNeeded();
+  consumeRestTicketsForMissedDays();
+  markGoalRewardIfNeeded();
+  claimLevelRewardsIfNeeded();
   renderHistory();
   updateAllStats();
 }

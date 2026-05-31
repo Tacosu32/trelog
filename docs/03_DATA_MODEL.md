@@ -31,13 +31,16 @@
 
 ## TrelogState
 
-凍結チケットと今日の目標達成報酬の状態。
+休憩チケット、今日の目標達成、レベル報酬の状態。
 
 | フィールド | 内容 | 初期値 |
 | --- | --- | --- |
-| freezeTickets | 所持している凍結チケット枚数 | `2` |
-| frozenDates | 凍結チケットで守った日付 | `[]` |
+| restTickets | 所持している休憩チケット枚数 | `2` |
+| restDates | 休憩チケットで守った日付 | `[]` |
 | claimedGoalRewardDates | 今日の目標達成報酬を受け取った日付 | `[]` |
+| claimedLevelRewards | レベル到達報酬を受け取ったレベル | `[]` |
+
+旧形式の `freezeTickets` と `frozenDates` が保存されている場合は、読み込み時に `restTickets` と `restDates` に移行する。
 
 ## DailyGoal
 
@@ -91,13 +94,39 @@
 level = Math.floor(totalExp / 100) + 1
 ```
 
+現在レベル内の進捗は以下で計算する。
+
+```js
+currentLevelStartExp = (currentLevel - 1) * 100
+nextLevelExp = currentLevel * 100
+progressExp = totalExp - currentLevelStartExp
+requiredExp = nextLevelExp - totalExp
+progressRate = progressExp / 100
+```
+
+5レベルごとに休憩チケットを1枚付与する。
+報酬済みレベルは `claimedLevelRewards` に保存する。
+
+## Weekly Rank
+
+今週は月曜始まりとする。
+今週の記録日数と週間スコアからランクを計算する。
+
+| ランク | 条件 |
+| --- | --- |
+| S | 今週5日以上記録、または週間スコア500以上 |
+| A | 今週4日以上記録、または週間スコア350以上 |
+| B | 今週3日以上記録、または週間スコア200以上 |
+| C | 今週1〜2日記録 |
+| D | 今週記録なし |
+
 ## Streak
 
-連続日数は記録日と凍結日をもとに計算する。
-今日が記録日または凍結日なら今日から数え、そうでなければ昨日から数える。
-途中に未記録かつ未凍結の日があればそこで終了する。
+連続日数は記録日と休憩日をもとに計算する。
+今日が記録日または休憩日なら今日から数え、そうでなければ昨日から数える。
+途中に未記録かつ未休憩の日があればそこで終了する。
 
 ## Goal Reward
 
-今日のスコアが目標スコア以上になり、今日の日付が `claimedGoalRewardDates` に含まれていない場合、`freezeTickets` を1増やす。
-報酬付与後、今日の日付を `claimedGoalRewardDates` に追加する。
+今日のスコアが目標スコア以上になり、今日の日付が `claimedGoalRewardDates` に含まれていない場合、今日の日付を `claimedGoalRewardDates` に追加する。
+今日の目標達成では休憩チケットを付与しない。

@@ -123,6 +123,12 @@ h2 {
   line-height: 1;
 }
 
+.status-card small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
 .status-card-large strong {
   font-size: 2.25rem;
 }
@@ -258,6 +264,35 @@ input[type="radio"] {
 
 .goal-card {
   background: linear-gradient(160deg, #ffffff 0%, #fff1d6 100%);
+}
+
+.level-progress-panel {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.level-exp-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.level-progress-bar {
+  height: 12px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: #efe4d7;
+  overflow: hidden;
+}
+
+.level-progress-bar span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.25s ease;
 }
 
 .goal-grid {
@@ -531,16 +566,72 @@ input[type="radio"] {
   line-height: 1.45;
 }
 
-.frozen-dates {
+.rest-dates {
   display: grid;
   gap: 6px;
   margin-top: 10px;
 }
 
-.frozen-dates span {
+.rest-dates span {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+.debug-panel {
+  margin-top: 16px;
+  border: 1px dashed #9b8f81;
+  border-radius: 8px;
+  background: #f3efe8;
+  padding: 12px;
+}
+
+.debug-panel.hidden {
+  display: none;
+}
+
+.debug-panel summary {
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.debug-actions,
+.debug-date-row {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.debug-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.debug-date-row {
+  grid-template-columns: 1fr;
+}
+
+.debug-panel button,
+.debug-panel input {
+  min-height: 40px;
+  border: 1px solid #cfc3b5;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fffdf9;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+}
+
+.debug-panel pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 10px 0 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #2d2830;
+  color: #fffdf9;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 360px) {
