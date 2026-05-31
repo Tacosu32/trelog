@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>トレログ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">今日も一緒に</p>
+        <h1>トレログ</h1>
+      </div>
+      <p class="today-label">α版</p>
+    </header>
+
+    <section class="dashboard" aria-label="ダッシュボード">
+      <div class="status-card status-card-large">
+        <span>連続日数</span>
+        <strong>3日</strong>
+      </div>
+      <div class="status-card">
+        <span>Lv</span>
+        <strong>5</strong>
+      </div>
+      <div class="status-card">
+        <span>EXP</span>
+        <strong>420</strong>
+      </div>
+      <div class="status-card">
+        <span>今週ランク</span>
+        <strong>B</strong>
+      </div>
+      <div class="status-card">
+        <span>凍結チケット</span>
+        <strong>2枚</strong>
+      </div>
+    </section>
+
+    <section class="trainer-area" aria-label="トレーナー">
+      <div class="trainer-visual" aria-hidden="true">
+        <div class="trainer-face">
+          <span class="trainer-eye"></span>
+          <span class="trainer-eye"></span>
+          <span class="trainer-smile"></span>
+        </div>
+      </div>
+      <div class="speech-bubble">
+        <p>準備できたら、好きな音楽を流して始めよう。今日は軽めでも続けたら勝ちだよ。</p>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="menu-title">
+      <div class="section-heading">
+        <h2 id="menu-title">今日のメニュー</h2>
+        <span>5種目</span>
+      </div>
+      <div class="menu-list">
+        <label><input type="checkbox"> 腕立て</label>
+        <label><input type="checkbox"> 腹筋</label>
+        <label><input type="checkbox"> スクワット</label>
+        <label><input type="checkbox"> プランク</label>
+        <label><input type="checkbox"> ストレッチ</label>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="record-title">
+      <div class="section-heading">
+        <h2 id="record-title">今日の入力</h2>
+      </div>
+      <label class="field-label" for="workout-minutes">運動時間</label>
+      <div class="input-row">
+        <input id="workout-minutes" type="number" min="0" inputmode="numeric" placeholder="15">
+        <span>分</span>
+      </div>
+
+      <fieldset class="effort-group">
+        <legend>きつさ</legend>
+        <label><input type="radio" name="effort" value="1"> 1</label>
+        <label><input type="radio" name="effort" value="2"> 2</label>
+        <label><input type="radio" name="effort" value="3" checked> 3</label>
+        <label><input type="radio" name="effort" value="4"> 4</label>
+        <label><input type="radio" name="effort" value="5"> 5</label>
+      </fieldset>
+    </section>
+
+    <section class="panel" aria-labelledby="music-title">
+      <div class="section-heading">
+        <h2 id="music-title">音楽</h2>
+      </div>
+      <label class="file-picker" for="music-file">
+        <span>音楽ファイルを選択</span>
+        <small id="music-file-name">未選択</small>
+      </label>
+      <input id="music-file" class="visually-hidden" type="file" accept="audio/*">
+      <button class="secondary-button" type="button">音楽再生</button>
+    </section>
+
+    <div class="action-area">
+      <button class="primary-button" type="button">筋トレ開始</button>
+      <button class="save-button" type="button">今日の記録を保存</button>
+    </div>
+
+    <section class="panel history-panel" aria-labelledby="history-title">
+      <div class="section-heading">
+        <h2 id="history-title">履歴</h2>
+      </div>
+      <div class="empty-history">
+        <p>まだ記録はありません。</p>
+        <span>保存機能は次の実装で追加します。</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
