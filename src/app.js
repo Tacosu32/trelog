@@ -8,6 +8,10 @@ const trainerComment = document.getElementById("trainer-comment");
 const formMessage = document.getElementById("form-message");
 const historyList = document.getElementById("history-list");
 const emptyHistory = document.getElementById("empty-history");
+const exerciseSelect = document.getElementById("exercise-select");
+const recordAmountInput = document.getElementById("record-amount");
+const recordAmountLabel = document.getElementById("record-amount-label");
+const recordUnit = document.getElementById("record-unit");
 
 let selectedMusicUrl = "";
 let historyCount = 0;
@@ -17,9 +21,17 @@ function getSelectedMenus() {
   return Array.from(checkedMenus).map((menu) => menu.value);
 }
 
-function getWorkoutMinutes() {
-  const minutesInput = document.getElementById("workout-minutes");
-  return minutesInput.value.trim();
+function getSelectedExercise() {
+  return exerciseSelect.value;
+}
+
+function getRecordType() {
+  const selectedType = document.querySelector('input[name="record-type"]:checked');
+  return selectedType ? selectedType.value : "time";
+}
+
+function getRecordAmount() {
+  return recordAmountInput.value.trim();
 }
 
 function getSelectedEffort() {
@@ -32,16 +44,30 @@ function showMessage(message, isSuccess) {
   formMessage.classList.toggle("success", isSuccess);
 }
 
-function validateRecord(menus, minutes) {
-  if (menus.length === 0) {
-    return "今日のメニューを1つ以上選んでね。";
+function validateRecord(exercise, amount, recordType) {
+  if (exercise === "") {
+    return "記録する種目を1つ選んでね。";
   }
 
-  if (minutes === "" || Number(minutes) <= 0) {
-    return "運動時間を1分以上で入力してね。";
+  if (amount === "" || Number(amount) <= 0) {
+    const unit = getRecordUnit(recordType);
+    return `${unit}を1以上で入力してね。`;
   }
 
   return "";
+}
+
+function getRecordUnit(recordType) {
+  return recordType === "count" ? "回" : "分";
+}
+
+function updateRecordUnit() {
+  const recordType = getRecordType();
+  const unit = getRecordUnit(recordType);
+
+  recordAmountLabel.textContent = recordType === "count" ? "回数" : "時間";
+  recordAmountInput.placeholder = recordType === "count" ? "10" : "15";
+  recordUnit.textContent = unit;
 }
 
 function handleMusicFileChange() {
@@ -76,7 +102,7 @@ function startWorkout() {
   showMessage("筋トレを開始しました。", true);
 }
 
-function addHistoryRecord(menus, minutes, effort) {
+function addHistoryRecord(exercise, recordType, amount, effort) {
   historyCount += 1;
   emptyHistory.classList.add("hidden");
 
@@ -86,9 +112,9 @@ function addHistoryRecord(menus, minutes, effort) {
   const detailText = document.createElement("span");
 
   historyItem.className = "history-item";
-  title.textContent = `仮の記録 ${historyCount}`;
-  menuText.textContent = `メニュー: ${menus.join("、")}`;
-  detailText.textContent = `運動時間: ${minutes}分 / きつさ: ${effort}`;
+  title.textContent = `種目ログ ${historyCount}`;
+  menuText.textContent = `種目: ${exercise}`;
+  detailText.textContent = `記録: ${amount}${getRecordUnit(recordType)} / きつさ: ${effort}`;
 
   historyItem.appendChild(title);
   historyItem.appendChild(menuText);
@@ -96,23 +122,40 @@ function addHistoryRecord(menus, minutes, effort) {
   historyList.prepend(historyItem);
 }
 
+function disableSaveButtonTemporarily() {
+  saveRecordButton.disabled = true;
+  saveRecordButton.textContent = "保存しました";
+
+  setTimeout(() => {
+    saveRecordButton.disabled = false;
+    saveRecordButton.textContent = "種目ログを保存";
+  }, 2000);
+}
+
 function saveTodayRecord() {
-  const menus = getSelectedMenus();
-  const minutes = getWorkoutMinutes();
+  const exercise = getSelectedExercise();
+  const recordType = getRecordType();
+  const amount = getRecordAmount();
   const effort = getSelectedEffort();
-  const errorMessage = validateRecord(menus, minutes);
+  const errorMessage = validateRecord(exercise, amount, recordType);
 
   if (errorMessage !== "") {
     showMessage(errorMessage, false);
     return;
   }
 
-  addHistoryRecord(menus, minutes, effort);
-  trainerComment.textContent = "記録できたよ。今日の積み重ね、ちゃんと残しておこうね。";
-  showMessage("今日の記録を履歴に追加しました。", true);
+  addHistoryRecord(exercise, recordType, amount, effort);
+  disableSaveButtonTemporarily();
+  trainerComment.textContent = "種目ログを記録できたよ。今日の1本、ちゃんと積み上がってるね。";
+  showMessage("種目ログを履歴に追加しました。", true);
 }
 
 musicFileInput.addEventListener("change", handleMusicFileChange);
 playMusicButton.addEventListener("click", playSelectedMusic);
 startWorkoutButton.addEventListener("click", startWorkout);
 saveRecordButton.addEventListener("click", saveTodayRecord);
+document.querySelectorAll('input[name="record-type"]').forEach((recordTypeInput) => {
+  recordTypeInput.addEventListener("change", updateRecordUnit);
+});
+
+updateRecordUnit();

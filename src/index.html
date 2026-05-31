@@ -54,8 +54,8 @@
 
     <section class="panel" aria-labelledby="menu-title">
       <div class="section-heading">
-        <h2 id="menu-title">今日のメニュー</h2>
-        <span>5種目</span>
+        <h2 id="menu-title">今日のクエスト候補</h2>
+        <span>任意</span>
       </div>
       <div class="menu-list">
         <label><input type="checkbox" name="menu" value="腕立て"> 腕立て</label>
@@ -68,12 +68,28 @@
 
     <section class="panel" aria-labelledby="record-title">
       <div class="section-heading">
-        <h2 id="record-title">今日の入力</h2>
+        <h2 id="record-title">種目ログ入力</h2>
       </div>
-      <label class="field-label" for="workout-minutes">運動時間</label>
+      <label class="field-label" for="exercise-select">記録する種目</label>
+      <select id="exercise-select" class="select-field">
+        <option value="">種目を選択</option>
+        <option value="腕立て">腕立て</option>
+        <option value="腹筋">腹筋</option>
+        <option value="スクワット">スクワット</option>
+        <option value="プランク">プランク</option>
+        <option value="ストレッチ">ストレッチ</option>
+      </select>
+
+      <fieldset class="record-type-group">
+        <legend>記録方式</legend>
+        <label><input type="radio" name="record-type" value="time" checked> 時間</label>
+        <label><input type="radio" name="record-type" value="count"> 回数</label>
+      </fieldset>
+
+      <label id="record-amount-label" class="field-label" for="record-amount">時間</label>
       <div class="input-row">
-        <input id="workout-minutes" type="number" min="0" inputmode="numeric" placeholder="15">
-        <span>分</span>
+        <input id="record-amount" type="number" min="0" inputmode="numeric" placeholder="15">
+        <span id="record-unit">分</span>
       </div>
 
       <fieldset class="effort-group">
@@ -101,7 +117,7 @@
 
     <div class="action-area">
       <button id="start-workout-button" class="primary-button" type="button">筋トレ開始</button>
-      <button id="save-record-button" class="save-button" type="button">今日の記録を保存</button>
+      <button id="save-record-button" class="save-button" type="button">種目ログを保存</button>
       <p id="form-message" class="form-message" aria-live="polite"></p>
     </div>
 
