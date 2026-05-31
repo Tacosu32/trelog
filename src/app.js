@@ -1,4 +1,5 @@
 const storageKey = "trelog_records";
+const stateStorageKey = "trelog_state";
 const targetScore = 100;
 
 const musicFileInput = document.getElementById("music-file");
@@ -27,6 +28,8 @@ const todayLabel = document.getElementById("today-label");
 const streakDaysText = document.getElementById("streak-days");
 const levelDisplay = document.getElementById("level-display");
 const totalExpText = document.getElementById("total-exp");
+const freezeTicketsText = document.getElementById("freeze-tickets");
+const frozenDatesArea = document.getElementById("frozen-dates");
 
 const exerciseCoefficients = {
   "腕立て": { time: 10, reps: 2 },
@@ -45,6 +48,11 @@ const effortMultipliers = {
 };
 
 let records = [];
+let appState = {
+  freezeTickets: 2,
+  frozenDates: [],
+  claimedGoalRewardDates: []
+};
 let selectedMusicUrl = "";
 let timerState = "stopped";
 let elapsedSeconds = 0;
@@ -127,13 +135,19 @@ function showMessage(message, isSuccess) {
   formMessage.classList.toggle("success", isSuccess);
 }
 
+function updateTrainerComment(message) {
+  trainerComment.textContent = message;
+}
+
 function validateRecord(exercise, amount, recordType) {
   if (exercise === "") {
+    updateTrainerComment("種目を選べば大丈夫。今日の一歩を一緒に記録しよう。");
     return "記録する種目を1つ選んでね。";
   }
 
   if (amount === "" || Number(amount) <= 0) {
     const unit = getRecordUnit(recordType);
+    updateTrainerComment(`${unit}を入れたら保存できるよ。小さくても記録にしよう。`);
     return `${unit}を1以上で入力してね。`;
   }
 
@@ -181,7 +195,7 @@ function updateTimerDisplay() {
 function startTimer() {
   timerState = "running";
   startWorkoutButton.textContent = "一時停止";
-  trainerComment.textContent = "スタート！タイマーを見ながら、今の種目に集中しよう。";
+  updateTrainerComment("スタート！タイマーを見ながら、今の種目に集中しよう。");
   showMessage("タイマーを開始しました。", true);
 
   if (timerId === null) {
@@ -195,7 +209,7 @@ function startTimer() {
 function pauseTimer() {
   timerState = "paused";
   startWorkoutButton.textContent = "再開";
-  trainerComment.textContent = "一時停止中だよ。息を整えたら再開しよう。";
+  updateTrainerComment("一時停止中だよ。息を整えたら再開しよう。");
   showMessage("タイマーを一時停止しました。", true);
 
   clearInterval(timerId);
@@ -217,7 +231,12 @@ function handleWorkoutButtonClick() {
     return;
   }
 
+  const wasPaused = timerState === "paused";
   startTimer();
+
+  if (wasPaused) {
+    updateTrainerComment("再開だね。少しずつリズムを戻していこう。");
+  }
 }
 
 function getExerciseCoefficient(exercise, recordType) {
@@ -277,6 +296,24 @@ function updateGoalRecommendation() {
   goalRecommendation.textContent = `あと${neededAmount}${unit}で今日の目標に到達します`;
 }
 
+function claimGoalRewardIfNeeded() {
+  const today = getTodayDateString();
+
+  if (calculateTodayScore() < targetScore) {
+    return false;
+  }
+
+  if (appState.claimedGoalRewardDates.includes(today)) {
+    return false;
+  }
+
+  appState.freezeTickets += 1;
+  appState.claimedGoalRewardDates.push(today);
+  saveState();
+  updateTrainerComment("今日の目標達成！ごほうびに凍結チケットを1枚プレゼントしたよ。すごい！");
+  return true;
+}
+
 function calculateTodayScore() {
   const today = getTodayDateString();
   return records
@@ -292,22 +329,71 @@ function calculateLevel(totalExp) {
   return Math.floor(totalExp / 100) + 1;
 }
 
+function getRecordedDateSet() {
+  return new Set(records.map((record) => record.date));
+}
+
+function getFrozenDateSet() {
+  return new Set(appState.frozenDates);
+}
+
+function getContinuityDateSet() {
+  return new Set([...getRecordedDateSet(), ...getFrozenDateSet()]);
+}
+
+function hasContinuityBefore(dateText, continuityDates) {
+  return Array.from(continuityDates).some((date) => date < dateText);
+}
+
+function consumeFreezeTicketsForMissedDays() {
+  const continuityDates = getContinuityDateSet();
+  let cursor = records.some((record) => record.date === getTodayDateString())
+    ? getTodayDateString()
+    : addDays(getTodayDateString(), -1);
+  let usedCount = 0;
+
+  while (hasContinuityBefore(cursor, continuityDates)) {
+    if (continuityDates.has(cursor)) {
+      cursor = addDays(cursor, -1);
+      continue;
+    }
+
+    if (appState.freezeTickets <= 0) {
+      break;
+    }
+
+    appState.frozenDates.push(cursor);
+    appState.freezeTickets -= 1;
+    continuityDates.add(cursor);
+    usedCount += 1;
+    cursor = addDays(cursor, -1);
+  }
+
+  if (usedCount > 0) {
+    appState.frozenDates = Array.from(new Set(appState.frozenDates)).sort();
+    saveState();
+    updateTrainerComment(`未記録日を${usedCount}日分、凍結チケットで守ったよ。続いてる流れ、大事にしよう。`);
+  }
+
+  return usedCount;
+}
+
 function calculateStreakDays() {
-  const recordedDates = new Set(records.map((record) => record.date));
+  const continuityDates = getContinuityDateSet();
   const today = getTodayDateString();
   const yesterday = addDays(today, -1);
   let cursor = "";
 
-  if (recordedDates.has(today)) {
+  if (continuityDates.has(today)) {
     cursor = today;
-  } else if (recordedDates.has(yesterday)) {
+  } else if (continuityDates.has(yesterday)) {
     cursor = yesterday;
   } else {
     return 0;
   }
 
   let streak = 0;
-  while (recordedDates.has(cursor)) {
+  while (continuityDates.has(cursor)) {
     streak += 1;
     cursor = addDays(cursor, -1);
   }
@@ -331,11 +417,30 @@ function updateDashboard() {
   totalExpText.textContent = `${totalExp}`;
   levelDisplay.textContent = `${calculateLevel(totalExp)}`;
   streakDaysText.textContent = `${calculateStreakDays()}日`;
+  freezeTicketsText.textContent = `${appState.freezeTickets}枚`;
 }
 
 function updateAllStats() {
   updateGoalCard();
   updateDashboard();
+  renderFrozenDates();
+}
+
+function renderFrozenDates() {
+  frozenDatesArea.innerHTML = "";
+
+  if (appState.frozenDates.length === 0) {
+    return;
+  }
+
+  appState.frozenDates
+    .slice()
+    .sort()
+    .forEach((date) => {
+      const frozenDate = document.createElement("span");
+      frozenDate.textContent = `凍結日：${date}`;
+      frozenDatesArea.appendChild(frozenDate);
+    });
 }
 
 function loadRecords() {
@@ -355,6 +460,39 @@ function loadRecords() {
 
 function saveRecords() {
   localStorage.setItem(storageKey, JSON.stringify(records));
+}
+
+function getDefaultState() {
+  return {
+    freezeTickets: 2,
+    frozenDates: [],
+    claimedGoalRewardDates: []
+  };
+}
+
+function loadState() {
+  const savedState = localStorage.getItem(stateStorageKey);
+
+  if (!savedState) {
+    return getDefaultState();
+  }
+
+  try {
+    const parsedState = JSON.parse(savedState);
+    return {
+      freezeTickets: Number(parsedState.freezeTickets ?? 2),
+      frozenDates: Array.isArray(parsedState.frozenDates) ? parsedState.frozenDates : [],
+      claimedGoalRewardDates: Array.isArray(parsedState.claimedGoalRewardDates)
+        ? parsedState.claimedGoalRewardDates
+        : []
+    };
+  } catch (error) {
+    return getDefaultState();
+  }
+}
+
+function saveState() {
+  localStorage.setItem(stateStorageKey, JSON.stringify(appState));
 }
 
 function createRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score) {
@@ -476,20 +614,27 @@ function saveTodayRecord() {
 
   records.push(record);
   saveRecords();
+  const rewarded = claimGoalRewardIfNeeded();
   renderHistory();
   updateAllStats();
   resetTimer();
   disableSaveButtonTemporarily();
-  trainerComment.textContent = "種目ログを記録できたよ。EXPと連続日数にも反映したよ。";
+  if (!rewarded) {
+    updateTrainerComment("種目ログを記録できたよ。EXPと連続日数にも反映したよ。");
+  }
   showMessage("種目ログを保存しました。", true);
 }
 
 function initializeApp() {
   records = loadRecords();
+  appState = loadState();
+  saveState();
   todayLabel.textContent = getTodayText();
   handleExerciseChange();
   updateRecordUnit();
   updateTimerDisplay();
+  consumeFreezeTicketsForMissedDays();
+  claimGoalRewardIfNeeded();
   renderHistory();
   updateAllStats();
 }

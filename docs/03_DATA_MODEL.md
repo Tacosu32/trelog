@@ -3,7 +3,7 @@
 ## Alpha Data Policy
 
 α版ではlocalStorageへ保存する。
-保存キーは `trelog_records` とする。
+種目ログの保存キーは `trelog_records`、状態データの保存キーは `trelog_state` とする。
 
 ## ExerciseLog
 
@@ -28,6 +28,16 @@
 ## Daily Achievement
 
 日ごとの達成判定は、その日付のExerciseLogが1件以上ある場合に達成扱いとする。
+
+## TrelogState
+
+凍結チケットと今日の目標達成報酬の状態。
+
+| フィールド | 内容 | 初期値 |
+| --- | --- | --- |
+| freezeTickets | 所持している凍結チケット枚数 | `2` |
+| frozenDates | 凍結チケットで守った日付 | `[]` |
+| claimedGoalRewardDates | 今日の目標達成報酬を受け取った日付 | `[]` |
 
 ## DailyGoal
 
@@ -83,6 +93,11 @@ level = Math.floor(totalExp / 100) + 1
 
 ## Streak
 
-連続日数は記録日をもとに計算する。
-今日にログがあれば今日から数え、今日にログがなく昨日にログがある場合は昨日から数える。
-途中に未記録日があればそこで終了する。
+連続日数は記録日と凍結日をもとに計算する。
+今日が記録日または凍結日なら今日から数え、そうでなければ昨日から数える。
+途中に未記録かつ未凍結の日があればそこで終了する。
+
+## Goal Reward
+
+今日のスコアが目標スコア以上になり、今日の日付が `claimedGoalRewardDates` に含まれていない場合、`freezeTickets` を1増やす。
+報酬付与後、今日の日付を `claimedGoalRewardDates` に追加する。

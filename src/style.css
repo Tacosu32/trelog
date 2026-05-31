@@ -531,6 +531,18 @@ input[type="radio"] {
   line-height: 1.45;
 }
 
+.frozen-dates {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.frozen-dates span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 @media (max-width: 360px) {
   .app-shell {
     padding-inline: 12px;
