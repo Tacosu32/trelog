@@ -371,6 +371,18 @@ input[type="radio"] {
   background: var(--accent);
 }
 
+.form-message {
+  min-height: 22px;
+  color: var(--primary-dark);
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.form-message.success {
+  color: var(--secondary);
+}
+
 .empty-history {
   min-height: 86px;
   display: grid;
@@ -380,6 +392,38 @@ input[type="radio"] {
   border-radius: 8px;
   background: #fffdf9;
   text-align: center;
+}
+
+.empty-history.hidden {
+  display: none;
+}
+
+.history-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-item {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.history-item strong {
+  font-size: 0.95rem;
+}
+
+.history-item span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 @media (max-width: 360px) {

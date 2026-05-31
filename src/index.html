@@ -48,7 +48,7 @@
         </div>
       </div>
       <div class="speech-bubble">
-        <p>準備できたら、好きな音楽を流して始めよう。今日は軽めでも続けたら勝ちだよ。</p>
+        <p id="trainer-comment">準備できたら、好きな音楽を流して始めよう。今日は軽めでも続けたら勝ちだよ。</p>
       </div>
     </section>
 
@@ -58,11 +58,11 @@
         <span>5種目</span>
       </div>
       <div class="menu-list">
-        <label><input type="checkbox"> 腕立て</label>
-        <label><input type="checkbox"> 腹筋</label>
-        <label><input type="checkbox"> スクワット</label>
-        <label><input type="checkbox"> プランク</label>
-        <label><input type="checkbox"> ストレッチ</label>
+        <label><input type="checkbox" name="menu" value="腕立て"> 腕立て</label>
+        <label><input type="checkbox" name="menu" value="腹筋"> 腹筋</label>
+        <label><input type="checkbox" name="menu" value="スクワット"> スクワット</label>
+        <label><input type="checkbox" name="menu" value="プランク"> プランク</label>
+        <label><input type="checkbox" name="menu" value="ストレッチ"> ストレッチ</label>
       </div>
     </section>
 
@@ -95,22 +95,25 @@
         <small id="music-file-name">未選択</small>
       </label>
       <input id="music-file" class="visually-hidden" type="file" accept="audio/*">
-      <button class="secondary-button" type="button">音楽再生</button>
+      <button id="play-music-button" class="secondary-button" type="button">音楽再生</button>
+      <audio id="music-player"></audio>
     </section>
 
     <div class="action-area">
-      <button class="primary-button" type="button">筋トレ開始</button>
-      <button class="save-button" type="button">今日の記録を保存</button>
+      <button id="start-workout-button" class="primary-button" type="button">筋トレ開始</button>
+      <button id="save-record-button" class="save-button" type="button">今日の記録を保存</button>
+      <p id="form-message" class="form-message" aria-live="polite"></p>
     </div>
 
     <section class="panel history-panel" aria-labelledby="history-title">
       <div class="section-heading">
         <h2 id="history-title">履歴</h2>
       </div>
-      <div class="empty-history">
+      <div id="empty-history" class="empty-history">
         <p>まだ記録はありません。</p>
         <span>保存機能は次の実装で追加します。</span>
       </div>
+      <ul id="history-list" class="history-list"></ul>
     </section>
   </main>
 
