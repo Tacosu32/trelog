@@ -68,9 +68,11 @@ const resultScore = document.getElementById("result-score");
 const resultExp = document.getElementById("result-exp");
 const resultTodayScore = document.getElementById("result-today-score");
 const resultTargetScore = document.getElementById("result-target-score");
+const resultAchievementRate = document.getElementById("result-achievement-rate");
 const resultGoalStatus = document.getElementById("result-goal-status");
 const resultLevel = document.getElementById("result-level");
 const resultNextLevelExp = document.getElementById("result-next-level-exp");
+const resultBadgeList = document.getElementById("result-badge-list");
 const resultBonusList = document.getElementById("result-bonus-list");
 const resultOkButton = document.getElementById("result-ok-button");
 
@@ -890,17 +892,53 @@ function stopSelectedMusic() {
 }
 
 function getResultTrainerComment(result) {
+  if (result.levelRewards.length > 0) {
+    return "休憩チケット獲得！がんばった分、休める日もちゃんと守れるよ。";
+  }
+
   if (result.goalAchieved) {
     return result.goalMarked
-      ? "今日の目標達成！最後までやりきったね。これはかなりいい流れだよ。"
+      ? "今日の目標達成！かなりいい感じだよ！"
       : "今日の目標はもう達成済みだよ。さらに積めたの、すごくいいね。";
   }
 
   if (result.leveledUp) {
-    return `Lv.${result.afterLevel}にアップ！積み上げがちゃんと形になってるよ。`;
+    return "レベルアップ！積み重ねが形になってきたね。";
+  }
+
+  if (result.record.intensity <= 2) {
+    return "軽めでも続けたのがえらいよ。今日の流れ、ちゃんと守れたね。";
+  }
+
+  if (result.record.intensity >= 4) {
+    return "かなり追い込めたね。休憩も忘れずに！";
   }
 
   return "記録できたよ。今日の積み上げ、ちゃんと残ったね。";
+}
+
+function getResultTitle(result) {
+  if (result.goalAchieved) {
+    return "今日の目標達成！";
+  }
+
+  if (result.leveledUp) {
+    return "レベルアップ！";
+  }
+
+  return "ナイス記録！";
+}
+
+function getResultAnimationClass(result) {
+  if (result.goalAchieved) {
+    return "goal-complete";
+  }
+
+  if (result.leveledUp) {
+    return "level-up";
+  }
+
+  return "sparkle";
 }
 
 function createResultSummary(record, beforeLevel, levelRewards, goalMarked) {
@@ -909,6 +947,7 @@ function createResultSummary(record, beforeLevel, levelRewards, goalMarked) {
   const levelProgress = calculateLevelProgress(afterTotalExp);
   const todayScore = calculateTodayScore();
   const goalAchieved = todayScore >= targetScore;
+  const achievementRate = Math.min(Math.round((todayScore / targetScore) * 100), 999);
 
   return {
     record,
@@ -919,17 +958,43 @@ function createResultSummary(record, beforeLevel, levelRewards, goalMarked) {
     goalMarked,
     goalAchieved,
     todayScore,
+    achievementRate,
     totalExp: afterTotalExp,
     nextLevelRequiredExp: levelProgress.requiredExp
   };
 }
 
+function renderResultBadges(result) {
+  const badges = [];
+
+  if (result.goalAchieved) {
+    badges.push("今日の目標達成");
+  }
+
+  if (result.leveledUp) {
+    badges.push("Lv.UP");
+  }
+
+  if (result.levelRewards.length > 0) {
+    badges.push("休憩チケット獲得");
+  }
+
+  resultBadgeList.innerHTML = "";
+  badges.forEach((badge) => {
+    const badgeItem = document.createElement("span");
+    badgeItem.textContent = badge;
+    resultBadgeList.appendChild(badgeItem);
+  });
+}
+
 function showResultOverlay(result) {
   const record = result.record;
   const bonusMessages = [];
+  const animationClass = getResultAnimationClass(result);
 
-  resultScreen.classList.toggle("goal-complete", result.goalAchieved);
-  resultTitle.textContent = result.goalAchieved ? "今日の目標達成！" : "ナイス記録！";
+  resultScreen.classList.remove("goal-complete", "level-up", "sparkle");
+  resultScreen.classList.add(animationClass);
+  resultTitle.textContent = getResultTitle(result);
   resultTrainerComment.textContent = getResultTrainerComment(result);
   resultExerciseName.textContent = record.exerciseName;
   resultRecordValue.textContent = `${record.value}${record.unit}`;
@@ -938,11 +1003,13 @@ function showResultOverlay(result) {
   resultExp.textContent = `${record.exp}`;
   resultTodayScore.textContent = `${result.todayScore}`;
   resultTargetScore.textContent = `${targetScore}`;
+  resultAchievementRate.textContent = `達成率 ${result.achievementRate}%`;
   resultGoalStatus.textContent = result.goalAchieved
     ? result.goalMarked ? "今日の目標達成！" : "達成済み"
     : "挑戦中";
   resultLevel.textContent = `Lv.${result.afterLevel}`;
   resultNextLevelExp.textContent = `次のレベルまで ${result.nextLevelRequiredExp} EXP`;
+  renderResultBadges(result);
 
   if (result.leveledUp) {
     bonusMessages.push(`Lv.${result.afterLevel} にアップ！`);
@@ -964,7 +1031,7 @@ function showResultOverlay(result) {
 
 function closeResultOverlay() {
   resultOverlay.classList.add("hidden");
-  resultScreen.classList.remove("goal-complete");
+  resultScreen.classList.remove("goal-complete", "level-up", "sparkle");
 }
 
 function toggleSessionMusic() {

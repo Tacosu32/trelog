@@ -272,6 +272,10 @@
         <span></span>
         <span></span>
         <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
       </div>
 
       <header class="result-header">
@@ -292,6 +296,9 @@
         </div>
       </div>
 
+      <div id="result-badge-list" class="result-badge-list" aria-label="達成バッジ"></div>
+
+      <h3 class="result-section-title">今回の記録</h3>
       <section class="result-summary" aria-label="記録内容">
         <div>
           <span>種目</span>
@@ -307,6 +314,7 @@
         </div>
       </section>
 
+      <h3 class="result-section-title">獲得報酬</h3>
       <section class="result-score-grid" aria-label="獲得結果">
         <div>
           <span>スコア</span>
@@ -318,12 +326,18 @@
         </div>
       </section>
 
-      <section class="result-progress" aria-label="進捗">
+      <h3 class="result-section-title">今日の進捗</h3>
+      <section class="result-progress result-progress-single" aria-label="今日の進捗">
         <div>
           <span>今日のスコア</span>
           <strong><span id="result-today-score">0</span> / <span id="result-target-score">100</span></strong>
+          <small id="result-achievement-rate">達成率 0%</small>
           <small id="result-goal-status">挑戦中</small>
         </div>
+      </section>
+
+      <h3 class="result-section-title">成長</h3>
+      <section class="result-progress result-progress-single" aria-label="成長">
         <div>
           <span>レベル</span>
           <strong id="result-level">Lv.1</strong>
