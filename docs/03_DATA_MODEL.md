@@ -75,18 +75,21 @@ localStorageには保存しない。
 | running | 実行中 |
 | paused | 一時停止中 |
 
-## Exercise Coefficients
+## Exercise Definitions
 
-簡易スコア計算に使う種目係数。
+簡易スコア計算と記録方式制御に使う種目定義。
+localStorageには保存せず、`app.js` の `EXERCISE_DEFINITIONS` で管理する。
 
-| 種目 | 時間係数 | 回数係数 |
-| --- | ---: | ---: |
-| 腕立て | 10 | 2 |
-| 腹筋 | 8 | 1.5 |
-| スクワット | 8 | 1.5 |
-| プランク | 12 | 0 |
-| ストレッチ | 3 | 0 |
-| 自由種目 | 5 | 1 |
+| id | 種目 | 対応方式 | 時間係数 | 回数係数 |
+| --- | --- | --- | ---: | ---: |
+| pushup | 腕立て | time / reps | 10 | 2 |
+| abs | 腹筋 | time / reps | 8 | 1.5 |
+| squat | スクワット | time / reps | 8 | 1.5 |
+| plank | プランク | time | 12 | 0 |
+| stretch | ストレッチ | time | 3 | 0 |
+| custom | 自由種目 | time / reps | 5 | 1 |
+
+`allowedModes` に含まれない記録方式はUIで選択できず、開始・保存時にも弾く。
 
 ## Effort Multipliers
 

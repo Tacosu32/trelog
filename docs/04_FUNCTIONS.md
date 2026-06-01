@@ -17,6 +17,26 @@
 
 保存用の種目IDを返す。
 自由種目の場合は `custom-種目名` の形式にする。
+定義済み種目の場合は `EXERCISE_DEFINITIONS` の `id` を返す。
+
+### getExerciseDefinition(exercise)
+
+種目名から `EXERCISE_DEFINITIONS` の種目定義を返す。
+未定義または自由種目の場合は `custom` 定義を返す。
+
+### isRecordModeAllowed(exercise, recordType)
+
+指定した種目が、指定した記録方式に対応しているかを返す。
+開始・保存前のバリデーションとスコア計算の安全確認で使う。
+
+### getAllowedRecordModeText(exercise)
+
+指定した種目で使える記録方式を「時間」または「時間 / 回数」の表示文字列にする。
+
+### updateRecordModeAvailability()
+
+選択中の種目に応じて、記録方式ラジオの有効・無効、補足文、disabled表示を更新する。
+現在選択中の方式が非対応なら、対応している方式へ自動で切り替える。
 
 ### getTodayText()
 
@@ -38,6 +58,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### handleExerciseChange()
 
 種目プルダウンの変更に応じて、新しい種目名入力欄の表示・非表示を切り替え、目標到達目安を更新する。
+あわせて、種目ごとの対応記録方式を反映する。
 
 ### getRecordType()
 
@@ -66,6 +87,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### validateRecord(exercise, amount, recordType)
 
 保存前に、種目が選択されているか、分または回が入力されているかを確認する。
+種目が対応していない記録方式の場合は保存不可にする。
 時間式では、入力値ではなく `elapsedSeconds` が1秒以上かを確認する。
 問題がある場合はエラーメッセージを返す。
 
@@ -76,6 +98,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### updateRecordUnit()
 
 記録方式が切り替わったときに、入力欄のラベル、プレースホルダー、単位を更新する。
+種目ごとの対応記録方式も確認し、非対応方式が選ばれた状態を残さない。
 
 ### formatElapsedTime(totalSeconds)
 
@@ -171,6 +194,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### startSession()
 
 種目が選択されていることを確認し、セッションオーバーレイを表示してタイマーを開始する。
+種目が対応していない記録方式では開始できない。
 
 ### handleSessionPauseButtonClick()
 
@@ -189,6 +213,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### getExerciseCoefficient(exercise, recordType)
 
 種目と記録方式に応じて、簡易スコア計算用の種目係数を返す。
+係数は `EXERCISE_DEFINITIONS` の `timeCoefficient` または `repsCoefficient` を参照する。
 
 ### getEffortMultiplier(effort)
 
@@ -197,6 +222,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### calculateScore(exercise, recordType, amount, effort)
 
 簡易スコア仕様に従って、1つの種目ログのスコアを計算する。
+非対応の記録方式ではスコアを0として扱い、保存・開始側のバリデーションで通常は到達しないようにする。
 
 ### calculateRecordScore(exercise, recordType, amount, effort, savedElapsedSeconds)
 

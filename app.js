@@ -20,6 +20,7 @@ const customExerciseName = document.getElementById("custom-exercise-name");
 const recordAmountInput = document.getElementById("record-amount");
 const recordAmountLabel = document.getElementById("record-amount-label");
 const recordUnit = document.getElementById("record-unit");
+const recordModeHint = document.getElementById("record-mode-hint");
 const timerDisplay = document.getElementById("timer-display");
 const targetScoreText = document.getElementById("target-score");
 const currentScoreText = document.getElementById("current-score");
@@ -78,14 +79,51 @@ const resultBonusList = document.getElementById("result-bonus-list");
 const resultOkButton = document.getElementById("result-ok-button");
 const appViews = document.querySelectorAll(".app-view");
 const navButtons = document.querySelectorAll(".nav-button");
+const recordTypeInputs = document.querySelectorAll('input[name="record-type"]');
 
-const exerciseCoefficients = {
-  "腕立て": { time: 10, reps: 2 },
-  "腹筋": { time: 8, reps: 1.5 },
-  "スクワット": { time: 8, reps: 1.5 },
-  "プランク": { time: 12, reps: 0 },
-  "ストレッチ": { time: 3, reps: 0 },
-  "自由種目": { time: 5, reps: 1 }
+const EXERCISE_DEFINITIONS = {
+  pushup: {
+    id: "pushup",
+    name: "腕立て",
+    allowedModes: ["time", "reps"],
+    timeCoefficient: 10,
+    repsCoefficient: 2
+  },
+  abs: {
+    id: "abs",
+    name: "腹筋",
+    allowedModes: ["time", "reps"],
+    timeCoefficient: 8,
+    repsCoefficient: 1.5
+  },
+  squat: {
+    id: "squat",
+    name: "スクワット",
+    allowedModes: ["time", "reps"],
+    timeCoefficient: 8,
+    repsCoefficient: 1.5
+  },
+  plank: {
+    id: "plank",
+    name: "プランク",
+    allowedModes: ["time"],
+    timeCoefficient: 12,
+    repsCoefficient: 0
+  },
+  stretch: {
+    id: "stretch",
+    name: "ストレッチ",
+    allowedModes: ["time"],
+    timeCoefficient: 3,
+    repsCoefficient: 0
+  },
+  custom: {
+    id: "custom",
+    name: "自由種目",
+    allowedModes: ["time", "reps"],
+    timeCoefficient: 5,
+    repsCoefficient: 1
+  }
 };
 const effortMultipliers = {
   1: 0.8,
@@ -135,7 +173,55 @@ function getExerciseId() {
     return name === "" ? "" : `custom-${name}`;
   }
 
-  return exerciseSelect.value;
+  return getExerciseDefinition(getSelectedExercise()).id;
+}
+
+function getExerciseDefinition(exercise) {
+  return Object.values(EXERCISE_DEFINITIONS)
+    .find((definition) => definition.name === exercise) || EXERCISE_DEFINITIONS.custom;
+}
+
+function isRecordModeAllowed(exercise, recordType) {
+  return getExerciseDefinition(exercise).allowedModes.includes(recordType);
+}
+
+function getAllowedRecordModeText(exercise) {
+  return getExerciseDefinition(exercise).allowedModes
+    .map(getRecordTypeText)
+    .join(" / ");
+}
+
+function updateRecordModeAvailability() {
+  const exercise = getSelectedExercise();
+  const definition = getExerciseDefinition(exercise);
+  const currentRecordType = getRecordType();
+
+  recordTypeInputs.forEach((input) => {
+    const isAllowed = definition.allowedModes.includes(input.value);
+    input.disabled = !isAllowed;
+    input.closest("label").classList.toggle("disabled", !isAllowed);
+  });
+
+  if (!definition.allowedModes.includes(currentRecordType)) {
+    const fallbackInput = Array.from(recordTypeInputs)
+      .find((input) => definition.allowedModes.includes(input.value));
+
+    if (fallbackInput) {
+      fallbackInput.checked = true;
+    }
+  }
+
+  if (exercise === "") {
+    recordModeHint.textContent = "種目を選ぶと、使える記録方式を表示します。";
+    return;
+  }
+
+  if (definition.allowedModes.length === 1) {
+    recordModeHint.textContent = `この種目は${getAllowedRecordModeText(exercise)}で記録します。`;
+    return;
+  }
+
+  recordModeHint.textContent = `この種目は${getAllowedRecordModeText(exercise)}で記録できます。`;
 }
 
 function getTodayText() {
@@ -172,7 +258,8 @@ function handleExerciseChange() {
     customExerciseName.value = "";
   }
 
-  updateGoalRecommendation();
+  updateRecordModeAvailability();
+  updateRecordUnit();
 }
 
 function getRecordType() {
@@ -216,6 +303,14 @@ function validateRecord(exercise, amount, recordType) {
     return "記録する種目を1つ選んでね。";
   }
 
+  if (!isRecordModeAllowed(exercise, recordType)) {
+    const allowedModeText = getAllowedRecordModeText(exercise);
+    updateTrainerComment(`この種目は${allowedModeText}で記録しよう。記録方式を直しておいたよ。`);
+    updateRecordModeAvailability();
+    updateRecordUnit();
+    return `この種目は${allowedModeText}で記録してね。`;
+  }
+
   if (recordType === "time") {
     if (elapsedSeconds < 1) {
       updateTrainerComment("1秒でも動けたら記録できるよ。タイマーを少し進めてから保存してね。");
@@ -239,6 +334,7 @@ function getRecordUnit(recordType) {
 }
 
 function updateRecordUnit() {
+  updateRecordModeAvailability();
   const recordType = getRecordType();
   const unit = getRecordUnit(recordType);
 
@@ -392,6 +488,10 @@ function calculateSessionProjectedScore(exercise, recordType, effort) {
 }
 
 function calculateRemainingAmountFromScore(remainingScore, exercise, recordType, effort) {
+  if (!isRecordModeAllowed(exercise || "自由種目", recordType)) {
+    return null;
+  }
+
   const coefficient = getExerciseCoefficient(exercise || "自由種目", recordType);
   const multiplier = getEffortMultiplier(effort);
 
@@ -408,7 +508,6 @@ function calculateRemainingAmountFromScore(remainingScore, exercise, recordType,
 
 function getGoalRecommendationText(exercise, recordType, effort, projectedScore) {
   const unit = getRecordUnit(recordType);
-  const modeText = getRecordTypeText(recordType);
   const savedTodayScore = calculateTodayScore();
   const expectedTodayScore = savedTodayScore + Number(projectedScore || 0);
   const remainingScore = Math.max(targetScore - expectedTodayScore, 0);
@@ -427,7 +526,7 @@ function getGoalRecommendationText(exercise, recordType, effort, projectedScore)
   }
 
   if (neededAmount === null) {
-    return `${exercise} / ${modeText}ではスコアが増えません`;
+    return `この種目は${getAllowedRecordModeText(exercise)}で記録します`;
   }
 
   return `あと${neededAmount}${unit}`;
@@ -470,10 +569,20 @@ function updateSessionDisplay() {
 
 function startSession() {
   const exercise = getSelectedExercise();
+  const recordType = getRecordType();
 
   if (exercise === "") {
     updateTrainerComment("先に種目を選ぼう。決めたらすぐ一緒に始められるよ。");
     showMessage("記録する種目を1つ選んでね。", false);
+    return;
+  }
+
+  if (!isRecordModeAllowed(exercise, recordType)) {
+    const allowedModeText = getAllowedRecordModeText(exercise);
+    updateTrainerComment(`この種目は${allowedModeText}で記録しよう。`);
+    showMessage(`この種目は${allowedModeText}で記録してね。`, false);
+    updateRecordModeAvailability();
+    updateRecordUnit();
     return;
   }
 
@@ -512,8 +621,13 @@ function cancelSession() {
 }
 
 function getExerciseCoefficient(exercise, recordType) {
-  const coefficients = exerciseCoefficients[exercise] || exerciseCoefficients["自由種目"];
-  return coefficients[recordType];
+  const definition = getExerciseDefinition(exercise);
+
+  if (recordType === "time") {
+    return definition.timeCoefficient;
+  }
+
+  return definition.repsCoefficient;
 }
 
 function getEffortMultiplier(effort) {
@@ -521,6 +635,10 @@ function getEffortMultiplier(effort) {
 }
 
 function calculateScore(exercise, recordType, amount, effort) {
+  if (!isRecordModeAllowed(exercise, recordType)) {
+    return 0;
+  }
+
   const coefficient = getExerciseCoefficient(exercise, recordType);
   const multiplier = getEffortMultiplier(effort);
   return Math.round(Number(amount) * coefficient * multiplier);
@@ -560,7 +678,6 @@ function updateGoalRecommendation() {
   const exercise = getSelectedExercise();
   const recordType = getRecordType();
   const effort = getSelectedEffort();
-  const modeText = getRecordTypeText(recordType);
   const neededAmount = calculateNeededAmount(exercise || "自由種目", recordType, effort);
 
   if (calculateTodayScore() >= targetScore) {
@@ -576,7 +693,7 @@ function updateGoalRecommendation() {
   }
 
   if (neededAmount === null) {
-    goalRecommendation.textContent = `${exercise} / ${modeText}ではスコアが増えません`;
+    goalRecommendation.textContent = `この種目は${getAllowedRecordModeText(exercise)}で記録します`;
     updateSessionDisplay();
     return;
   }
@@ -1516,9 +1633,12 @@ document.querySelectorAll(".session-reps-add-button").forEach((button) => {
   });
 });
 exerciseSelect.addEventListener("change", handleExerciseChange);
-customExerciseName.addEventListener("input", updateGoalRecommendation);
+customExerciseName.addEventListener("input", () => {
+  updateRecordModeAvailability();
+  updateGoalRecommendation();
+});
 recordAmountInput.addEventListener("input", updateGoalRecommendation);
-document.querySelectorAll('input[name="record-type"]').forEach((recordTypeInput) => {
+recordTypeInputs.forEach((recordTypeInput) => {
   recordTypeInput.addEventListener("change", updateRecordUnit);
 });
 document.querySelectorAll('input[name="effort"]').forEach((effortInput) => {

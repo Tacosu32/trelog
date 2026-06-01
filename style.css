@@ -434,6 +434,19 @@ input[type="radio"] {
   justify-content: center;
 }
 
+.record-type-group label.disabled {
+  color: var(--muted);
+  background: #f3efe8;
+  opacity: 0.62;
+}
+
+.record-mode-hint {
+  margin: -6px 0 14px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .timer-card {
   display: flex;
   align-items: center;
