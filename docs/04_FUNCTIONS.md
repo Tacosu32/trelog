@@ -219,10 +219,29 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 
 きつさに応じた補正値を返す。
 
+### getEvaluationProfile()
+
+現在の `trelog_state.evaluationProfile` を返す。
+未設定または不正値の場合は `standard` を返す。
+
+### getEvaluationProfileMultiplier()
+
+現在の評価プロファイルに対応するスコア補正倍率を返す。
+
+### updateEvaluationProfileDisplay()
+
+設定画面の評価レベル選択欄と説明文を、現在の評価プロファイルに合わせて更新する。
+
+### handleEvaluationProfileChange()
+
+設定画面で評価レベルが変更されたときに、`trelog_state.evaluationProfile` を更新してlocalStorageへ保存する。
+変更後は目標到達目安、セッション見込み、デバッグ表示を更新する。
+
 ### calculateScore(exercise, recordType, amount, effort)
 
 簡易スコア仕様に従って、1つの種目ログのスコアを計算する。
 非対応の記録方式ではスコアを0として扱い、保存・開始側のバリデーションで通常は到達しないようにする。
+種目係数、きつさ補正、評価プロファイル補正を掛け合わせて計算する。
 
 ### calculateRecordScore(exercise, recordType, amount, effort, savedElapsedSeconds)
 
@@ -330,12 +349,13 @@ localStorageの `trelog_records` から種目ログ配列を読み込む。
 ### getDefaultState()
 
 `trelog_state` の初期値を返す。
-初期値は休憩チケット2枚、休憩日なし、目標達成済み日付なし、レベル報酬受け取り済みなし。
+初期値は休憩チケット2枚、休憩日なし、目標達成済み日付なし、レベル報酬受け取り済みなし、評価プロファイルは標準。
 
 ### normalizeState(parsedState)
 
 保存済みの状態データを現在形式に整える。
 旧形式の `freezeTickets` と `frozenDates` は `restTickets` と `restDates` に移行する。
+`evaluationProfile` がない場合は `standard` で補完する。
 
 ### loadState()
 

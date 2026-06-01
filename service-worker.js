@@ -1,4 +1,4 @@
-const CACHE_NAME = "trelog-alpha-v10";
+const CACHE_NAME = "trelog-alpha-v11";
 
 const CORE_ASSETS = [
   "./index.html",

@@ -447,6 +447,14 @@ input[type="radio"] {
   font-weight: 700;
 }
 
+.settings-description {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
 .timer-card {
   display: flex;
   align-items: center;

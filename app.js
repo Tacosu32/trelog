@@ -39,6 +39,8 @@ const levelProgressTitle = document.getElementById("level-progress-title");
 const levelExpText = document.getElementById("level-exp-text");
 const nextLevelExpText = document.getElementById("next-level-exp");
 const levelProgressFill = document.getElementById("level-progress-fill");
+const evaluationProfileSelect = document.getElementById("evaluation-profile-select");
+const evaluationProfileDescription = document.getElementById("evaluation-profile-description");
 const debugPanel = document.getElementById("debug-panel");
 const debugStorageOutput = document.getElementById("debug-storage-output");
 const sessionOverlay = document.getElementById("session-overlay");
@@ -131,6 +133,28 @@ const effortMultipliers = {
   3: 1,
   4: 1.1,
   5: 1.2
+};
+const evaluationProfiles = {
+  beginner: {
+    label: "初心者",
+    multiplier: 1.2,
+    description: "初心者は軽い運動も評価されやすくなります。"
+  },
+  standard: {
+    label: "標準",
+    multiplier: 1,
+    description: "標準的な評価でスコアを計算します。"
+  },
+  experienced: {
+    label: "慣れている",
+    multiplier: 0.85,
+    description: "運動に慣れている人向けに、少し控えめに評価します。"
+  },
+  hard: {
+    label: "高負荷向け",
+    multiplier: 0.7,
+    description: "高負荷トレーニング向けに、厳しめに評価します。"
+  }
 };
 
 let records = [];
@@ -494,16 +518,17 @@ function calculateRemainingAmountFromScore(remainingScore, exercise, recordType,
 
   const coefficient = getExerciseCoefficient(exercise || "自由種目", recordType);
   const multiplier = getEffortMultiplier(effort);
+  const profileMultiplier = getEvaluationProfileMultiplier();
 
   if (remainingScore <= 0) {
     return 0;
   }
 
-  if (coefficient <= 0 || multiplier <= 0) {
+  if (coefficient <= 0 || multiplier <= 0 || profileMultiplier <= 0) {
     return null;
   }
 
-  return Math.ceil(remainingScore / coefficient / multiplier);
+  return Math.ceil(remainingScore / coefficient / multiplier / profileMultiplier);
 }
 
 function getGoalRecommendationText(exercise, recordType, effort, projectedScore) {
@@ -634,6 +659,32 @@ function getEffortMultiplier(effort) {
   return effortMultipliers[effort] || 1;
 }
 
+function getEvaluationProfile() {
+  return evaluationProfiles[appState.evaluationProfile]
+    ? appState.evaluationProfile
+    : "standard";
+}
+
+function getEvaluationProfileMultiplier() {
+  return evaluationProfiles[getEvaluationProfile()].multiplier;
+}
+
+function updateEvaluationProfileDisplay() {
+  const profile = getEvaluationProfile();
+  evaluationProfileSelect.value = profile;
+  evaluationProfileDescription.textContent = `${evaluationProfiles[profile].description} スコア倍率: ${evaluationProfiles[profile].multiplier}`;
+}
+
+function handleEvaluationProfileChange() {
+  appState.evaluationProfile = evaluationProfileSelect.value;
+  saveState();
+  updateEvaluationProfileDisplay();
+  updateGoalRecommendation();
+  updateSessionDisplay();
+  updateDebugStorageOutput();
+  showMessage(`評価レベルを「${evaluationProfiles[getEvaluationProfile()].label}」に変更しました。`, true);
+}
+
 function calculateScore(exercise, recordType, amount, effort) {
   if (!isRecordModeAllowed(exercise, recordType)) {
     return 0;
@@ -641,7 +692,8 @@ function calculateScore(exercise, recordType, amount, effort) {
 
   const coefficient = getExerciseCoefficient(exercise, recordType);
   const multiplier = getEffortMultiplier(effort);
-  return Math.round(Number(amount) * coefficient * multiplier);
+  const profileMultiplier = getEvaluationProfileMultiplier();
+  return Math.round(Number(amount) * coefficient * multiplier * profileMultiplier);
 }
 
 function calculateRecordScore(exercise, recordType, amount, effort, savedElapsedSeconds) {
@@ -954,7 +1006,8 @@ function getDefaultState() {
     restTickets: 2,
     restDates: [],
     claimedGoalRewardDates: [],
-    claimedLevelRewards: []
+    claimedLevelRewards: [],
+    evaluationProfile: "standard"
   };
 }
 
@@ -972,7 +1025,10 @@ function normalizeState(parsedState) {
       : defaultState.claimedGoalRewardDates,
     claimedLevelRewards: Array.isArray(parsedState.claimedLevelRewards)
       ? parsedState.claimedLevelRewards
-      : defaultState.claimedLevelRewards
+      : defaultState.claimedLevelRewards,
+    evaluationProfile: evaluationProfiles[parsedState.evaluationProfile]
+      ? parsedState.evaluationProfile
+      : defaultState.evaluationProfile
   };
 }
 
@@ -1591,6 +1647,7 @@ function initializeApp() {
   saveState();
   todayLabel.textContent = getTodayText();
   setupDebugPanel();
+  updateEvaluationProfileDisplay();
   handleExerciseChange();
   updateRecordUnit();
   updateTimerDisplay();
@@ -1605,6 +1662,7 @@ musicFileInput.addEventListener("change", handleMusicFileChange);
 musicPlayer.addEventListener("play", updateSessionDisplay);
 musicPlayer.addEventListener("pause", updateSessionDisplay);
 playMusicButton.addEventListener("click", playSelectedMusic);
+evaluationProfileSelect.addEventListener("change", handleEvaluationProfileChange);
 homeStartRecordButton.addEventListener("click", () => {
   switchView("record");
 });

@@ -197,6 +197,22 @@
         <h2 id="settings-view-title">設定</h2>
       </div>
 
+    <section class="panel settings-panel" aria-labelledby="evaluation-profile-title">
+      <div class="section-heading">
+        <h2 id="evaluation-profile-title">評価レベル</h2>
+      </div>
+      <label class="field-label" for="evaluation-profile-select">現在の評価レベル</label>
+      <select id="evaluation-profile-select" class="select-field">
+        <option value="beginner">初心者</option>
+        <option value="standard">標準</option>
+        <option value="experienced">慣れている</option>
+        <option value="hard">高負荷向け</option>
+      </select>
+      <p id="evaluation-profile-description" class="settings-description">
+        初心者は軽い運動も評価されやすく、高負荷向けは少し厳しめに評価されます。
+      </p>
+    </section>
+
     <section id="debug-panel" class="debug-panel">
       <details>
         <summary>開発用デバッグ</summary>
