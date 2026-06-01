@@ -11,6 +11,8 @@
   --soft-pink: #ffe4ea;
   --soft-green: #e1f6ef;
   --shadow: 0 14px 30px rgba(75, 55, 35, 0.12);
+  --bottom-nav-height: 72px;
+  --safe-bottom-space: env(safe-area-inset-bottom, 0px);
 }
 
 * {
@@ -20,6 +22,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   background:
     linear-gradient(180deg, #fff7ed 0%, var(--bg) 42%, #eef8f5 100%);
   color: var(--ink);
@@ -43,8 +46,9 @@ button {
 .app-shell {
   width: min(100%, 430px);
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
-  padding: 20px 16px 104px;
+  padding: 20px 16px calc(var(--bottom-nav-height) + var(--safe-bottom-space) + 44px);
 }
 
 .app-view {
@@ -470,6 +474,27 @@ input[type="radio"] {
   font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.55;
+}
+
+.app-version-text,
+.app-version-footer {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.app-version-text {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+  overflow-wrap: anywhere;
+}
+
+.app-version-footer {
+  margin: 16px 0 0;
+  text-align: center;
 }
 
 .dev-scoring-status {
@@ -960,8 +985,12 @@ input[type="radio"] {
   inset: 0;
   z-index: 20;
   display: grid;
-  place-items: center;
-  padding: 16px;
+  align-items: stretch;
+  justify-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: auto;
+  padding: 16px 16px calc(24px + var(--safe-bottom-space));
   background: rgba(45, 40, 48, 0.42);
 }
 
@@ -974,13 +1003,16 @@ input[type="radio"] {
 .result-screen {
   width: min(100%, 430px);
   max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 40px - var(--safe-bottom-space));
   display: grid;
   gap: 12px;
   overflow: auto;
-  padding: 16px;
+  padding: 16px 16px calc(22px + var(--safe-bottom-space));
   border-radius: 8px;
   background: linear-gradient(180deg, #fff7ed 0%, #eef8f5 100%);
   box-shadow: 0 20px 60px rgba(45, 40, 48, 0.26);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .session-screen {
@@ -1502,6 +1534,11 @@ input[type="radio"] {
 .session-actions {
   display: grid;
   gap: 10px;
+  padding-bottom: max(4px, var(--safe-bottom-space));
+}
+
+#result-ok-button {
+  margin-bottom: max(4px, var(--safe-bottom-space));
 }
 
 .session-cancel-button {
@@ -1524,7 +1561,8 @@ input[type="radio"] {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  min-height: calc(var(--bottom-nav-height) + var(--safe-bottom-space));
+  padding: 8px 10px calc(8px + var(--safe-bottom-space));
   border-top: 1px solid rgba(234, 223, 210, 0.95);
   background: rgba(255, 253, 249, 0.96);
   box-shadow: 0 -10px 24px rgba(45, 40, 48, 0.12);
@@ -1550,7 +1588,7 @@ input[type="radio"] {
 @media (max-width: 360px) {
   .app-shell {
     padding-inline: 12px;
-    padding-bottom: 100px;
+    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom-space) + 40px);
   }
 
   .trainer-area {
@@ -1566,17 +1604,19 @@ input[type="radio"] {
   }
 
   .session-overlay {
-    padding: 10px;
+    padding: 10px 10px calc(20px + var(--safe-bottom-space));
   }
 
   .session-screen {
     max-height: calc(100vh - 20px);
-    padding: 12px;
+    max-height: calc(100dvh - 24px - var(--safe-bottom-space));
+    padding: 12px 12px calc(20px + var(--safe-bottom-space));
   }
 
   .result-screen {
     max-height: calc(100vh - 20px);
-    padding: 12px;
+    max-height: calc(100dvh - 24px - var(--safe-bottom-space));
+    padding: 12px 12px calc(20px + var(--safe-bottom-space));
   }
 
   .session-trainer,

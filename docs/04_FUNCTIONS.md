@@ -1,5 +1,23 @@
 # 04_FUNCTIONS
 
+## 2026-06-02 追記: バージョン表示と更新操作
+
+### getAppVersionText()
+
+`APP_VERSION` と `APP_BUILD_LABEL` から、画面表示用のアプリバージョン文字列を返す。
+
+### updateAppVersionDisplay()
+
+設定画面、デバッグ画面、画面下部フッターのバージョン表示を更新する。
+
+### checkForAppUpdate()
+
+Service Worker の登録がある場合に `registration.update()` を呼び、アプリ更新確認を実行する。localStorage や IndexedDB は変更しない。
+
+### clearAppCachesAndReload()
+
+Cache Storage のキャッシュだけを削除して `location.reload()` する。筋トレ記録、設定、カスタムトレーナー画像は削除しない。
+
 ## app.js
 
 ### switchView(viewName)

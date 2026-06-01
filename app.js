@@ -1,4 +1,6 @@
 const DEBUG_MODE = true;
+const APP_VERSION = "0.4.1-dev";
+const APP_BUILD_LABEL = "mobile-safe-area-2026-06-02";
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
@@ -72,6 +74,12 @@ const exportLightBackupButton = document.getElementById("export-light-backup-but
 const exportFullBackupButton = document.getElementById("export-full-backup-button");
 const importBackupFile = document.getElementById("import-backup-file");
 const backupStatus = document.getElementById("backup-status");
+const appVersionText = document.getElementById("app-version-text");
+const appVersionFooter = document.getElementById("app-version-footer");
+const debugAppVersion = document.getElementById("debug-app-version");
+const checkAppUpdateButton = document.getElementById("check-app-update-button");
+const appUpdateStatus = document.getElementById("app-update-status");
+const clearAppCacheButton = document.getElementById("debug-clear-app-cache");
 const debugPanel = document.getElementById("debug-panel");
 const debugStorageOutput = document.getElementById("debug-storage-output");
 const sessionOverlay = document.getElementById("session-overlay");
@@ -2290,12 +2298,78 @@ function addTestRecord(dateText) {
   refreshAfterDebugAction(`${dateText} のテスト記録を追加しました。`);
 }
 
+function getAppVersionText() {
+  return `トレログ v${APP_VERSION} / ${APP_BUILD_LABEL}`;
+}
+
+function updateAppVersionDisplay() {
+  const versionText = getAppVersionText();
+
+  [appVersionText, appVersionFooter, debugAppVersion].forEach((element) => {
+    if (element) {
+      element.textContent = versionText;
+    }
+  });
+}
+
+async function checkForAppUpdate() {
+  if (!("serviceWorker" in navigator)) {
+    if (appUpdateStatus) {
+      appUpdateStatus.textContent = "このブラウザではService Worker更新確認を利用できません。";
+    }
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+
+    if (!registration) {
+      if (appUpdateStatus) {
+        appUpdateStatus.textContent = "Service Workerはまだ登録されていません。ページを開き直してから再度お試しください。";
+      }
+      return;
+    }
+
+    await registration.update();
+    if (appUpdateStatus) {
+      appUpdateStatus.textContent = "更新確認を実行しました。反映されない場合はページを開き直してください。";
+    }
+  } catch (error) {
+    if (appUpdateStatus) {
+      appUpdateStatus.textContent = "更新確認に失敗しました。通信状況を確認して、もう一度お試しください。";
+    }
+  }
+}
+
+async function clearAppCachesAndReload() {
+  if (!("caches" in window)) {
+    showMessage("このブラウザではアプリキャッシュ削除を利用できません。", false);
+    return;
+  }
+
+  if (!window.confirm("アプリ本体のキャッシュだけを削除して再読み込みします。筋トレ記録・設定・カスタム画像は削除しません。続行しますか？")) {
+    return;
+  }
+
+  try {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+    location.reload();
+  } catch (error) {
+    showMessage("アプリキャッシュ削除に失敗しました。", false);
+  }
+}
+
 function updateDebugStorageOutput() {
   if (!DEBUG_MODE || !debugStorageOutput) {
     return;
   }
 
   debugStorageOutput.textContent = JSON.stringify({
+    app: {
+      version: APP_VERSION,
+      buildLabel: APP_BUILD_LABEL
+    },
     trelog_records: JSON.parse(localStorage.getItem(storageKey) || "[]"),
     trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null"),
     trelog_dev_scoring_config: JSON.parse(localStorage.getItem(devScoringConfigStorageKey) || "null"),
@@ -2586,6 +2660,9 @@ function setupDebugPanel() {
     addTestRecord(addDays(getTodayDateString(), -3));
   });
   document.getElementById("debug-refresh-storage").addEventListener("click", updateDebugStorageOutput);
+  if (clearAppCacheButton) {
+    clearAppCacheButton.addEventListener("click", clearAppCachesAndReload);
+  }
 }
 
 async function initializeApp() {
@@ -2596,6 +2673,7 @@ async function initializeApp() {
   await loadCustomTrainerImage();
   updateTrainerImages({ home: "default", session: "cheer", result: "result" });
   applyMusicLoopSetting();
+  updateAppVersionDisplay();
   setupDebugPanel();
   renderScoringConfigPanel();
   updateEvaluationProfileDisplay();
@@ -2649,6 +2727,9 @@ exportFullBackupButton.addEventListener("click", () => {
 importBackupFile.addEventListener("change", () => {
   importBackupData(importBackupFile.files[0]);
 });
+if (checkAppUpdateButton) {
+  checkAppUpdateButton.addEventListener("click", checkForAppUpdate);
+}
 homeStartRecordButton.addEventListener("click", () => {
   switchView("record");
 });

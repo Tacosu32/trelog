@@ -1,5 +1,11 @@
 # 06_TASKS
 
+## 2026-06-02 追記
+
+- GitHub Pages公開後に、Safari/Chrome/Discord内ブラウザでsafe areaと下部ボタンの実機確認を継続する。
+- PWA更新時のバージョン表示とService Worker更新確認の案内文を、ユーザー向けにさらに分かりやすくする。
+- 必要に応じて、更新確認後に新しいService Workerが有効になったことを通知するUIを検討する。
+
 ## 次にやること
 
 - PWA用の正式アイコン `assets/icons/icon-192.png` と `assets/icons/icon-512.png` を制作する

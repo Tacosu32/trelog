@@ -1,4 +1,4 @@
-const CACHE_NAME = "trelog-alpha-v18";
+const CACHE_NAME = "trelog-cache-v0.4.1-dev-mobile-safe-area-2026-06-02";
 
 const CORE_ASSETS = [
   "./index.html",
@@ -16,6 +16,8 @@ const OPTIONAL_ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
+
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       const cacheCoreAssets = cache.addAll(CORE_ASSETS);
@@ -38,7 +40,7 @@ self.addEventListener("activate", (event) => {
           .filter((cacheName) => cacheName !== CACHE_NAME)
           .map((cacheName) => caches.delete(cacheName))
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 

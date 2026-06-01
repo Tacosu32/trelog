@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#2f9f8f">
   <title>トレログ</title>
   <link rel="manifest" href="manifest.json">
@@ -201,6 +201,23 @@
         <p class="eyebrow">開発用</p>
         <h2 id="settings-view-title">設定</h2>
       </div>
+
+    <section class="panel app-info-panel" aria-labelledby="app-info-title">
+      <div class="section-heading">
+        <h2 id="app-info-title">アプリ情報</h2>
+      </div>
+      <p id="app-version-text" class="app-version-text">トレログ</p>
+      <p class="settings-description">
+        Discord内ブラウザでは古い表示が残ることがあります。スマホ確認はSafari/Chrome本体で開くのがおすすめです。
+      </p>
+      <p class="settings-description">
+        古い画面が出る場合は、まず「アプリ更新を確認」またはデバッグ内の「アプリキャッシュを削除して再読み込み」を使ってください。
+      </p>
+      <div class="settings-actions">
+        <button id="check-app-update-button" class="secondary-button" type="button">アプリ更新を確認</button>
+      </div>
+      <p id="app-update-status" class="settings-description">サイトデータ削除は記録・設定・カスタム画像も消えるため、通常の更新確認には使わないでください。</p>
+    </section>
 
     <section class="panel settings-panel" aria-labelledby="evaluation-profile-title">
       <div class="section-heading">
@@ -445,11 +462,17 @@
           <button id="debug-add-yesterday-record" type="button">昨日のテスト記録を追加</button>
           <button id="debug-add-three-days-record" type="button">3日前のテスト記録を追加</button>
           <button id="debug-refresh-storage" type="button">localStorage内容を表示</button>
+          <button id="debug-clear-app-cache" type="button">アプリキャッシュを削除して再読み込み</button>
         </div>
+        <p class="settings-description">
+          筋トレ記録・設定・カスタム画像は削除せず、アプリ本体のキャッシュだけを削除します。
+        </p>
+        <p id="debug-app-version" class="settings-description">トレログ</p>
         <pre id="debug-storage-output"></pre>
       </details>
     </section>
     </section>
+    <p id="app-version-footer" class="app-version-footer">トレログ</p>
   </main>
 
   <nav class="bottom-nav" aria-label="画面切り替え">
