@@ -142,3 +142,32 @@ progressRate = progressExp / 100
 
 今日のスコアが目標スコア以上になり、今日の日付が `claimedGoalRewardDates` に含まれていない場合、今日の日付を `claimedGoalRewardDates` に追加する。
 今日の目標達成では休憩チケットを付与しない。
+
+## HistorySummary
+
+履歴表示用に `trelog_records` から画面表示時だけ作成する集計データ。
+localStorageには保存しない。
+
+階層は、年、月、日、種目単位とする。
+
+日ごとの集計では以下を持つ。
+
+| フィールド | 内容 |
+| --- | --- |
+| date | 日付 |
+| totalScore | その日の合計スコア |
+| exerciseNames | その日に記録した種目名の集合 |
+| exercises | 種目単位の集計 |
+
+種目ごとの集計では以下を持つ。
+
+| フィールド | 内容 |
+| --- | --- |
+| name | 種目名 |
+| unit | 単位。`分` または `回` |
+| totalValue | 合計記録値 |
+| totalScore | 合計スコア |
+| count | 記録件数 |
+| totalIntensity | 平均きつさ計算用のきつさ合計 |
+
+同じ日に同じ種目を複数回記録した場合は、種目名と単位ごとにまとめて表示する。

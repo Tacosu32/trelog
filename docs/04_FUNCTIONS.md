@@ -368,13 +368,47 @@ localStorageの `trelog_state` から状態データを読み込む。
 
 リザルトオーバーレイを閉じ、祝福演出用の状態を解除する。
 
-### addHistoryRecord(record, index)
+### getHistoryDateParts(dateText)
 
-保存済みの1種目ログを履歴エリアに1件追加する。
+`YYYY-MM-DD` 形式の日付を、年、月、日に分けて返す。
+履歴の年・月・日階層を作るために使う。
+
+### formatHistoryDate(dateText)
+
+履歴の日付行で使う表示用の日付を `YYYY/MM/DD` 形式で返す。
+
+### formatHistoryAmount(amount, unit)
+
+履歴の種目別集計で使う合計記録値を、単位付きの表示文字列に変換する。
+小数がある場合は小数1桁で表示する。
+
+### createHistorySummary()
+
+`trelog_records` の保存形式は変更せず、現在の `records` 配列から履歴表示用の集計データを作成する。
+年、月、日、種目単位にまとめ、日ごとの合計スコア、種目数、種目ごとの合計記録値、合計スコア、件数、平均きつさ計算用の値を作る。
+
+### appendHistoryExercise(parent, exerciseSummary)
+
+種目別集計行を作成し、親要素に追加する。
+種目名、合計記録値、合計スコア、記録件数、平均きつさを表示する。
+
+### appendHistoryDay(parent, daySummary, shouldOpen)
+
+日付単位の折りたたみ行を作成し、親要素に追加する。
+日付、合計スコア、目標スコア、達成状態、記録種目数を表示する。
+
+### appendHistoryMonth(parent, monthSummary, shouldOpen)
+
+月単位の折りたたみ行を作成し、配下に日付行を追加する。
+
+### appendHistoryYear(parent, yearSummary, shouldOpen)
+
+年単位の折りたたみ行を作成し、配下に月行を追加する。
 
 ### renderHistory()
 
-localStorageから読み込んだ記録を含め、現在の種目ログ配列を履歴エリアに再描画する。
+localStorageから読み込んだ記録を含め、現在の種目ログ配列を年、月、日、種目単位に集計して履歴エリアに再描画する。
+最新の年、月、日を初期展開する。
 
 ### renderRestDates()
 

@@ -1075,48 +1075,169 @@ function clearSessionReps() {
   updateGoalRecommendation();
 }
 
-function addHistoryRecord(record, index) {
-  emptyHistory.classList.add("hidden");
+function getHistoryDateParts(dateText) {
+  const [year, month, day] = dateText.split("-").map(Number);
+  return { year, month, day };
+}
 
-  const historyItem = document.createElement("li");
-  const title = document.createElement("strong");
-  const dateText = document.createElement("span");
-  const exerciseText = document.createElement("span");
-  const detailText = document.createElement("span");
-  const scoreText = document.createElement("span");
+function formatHistoryDate(dateText) {
+  const { year, month, day } = getHistoryDateParts(dateText);
+  return `${year}/${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")}`;
+}
 
-  historyItem.className = "history-item";
-  title.textContent = `種目ログ ${index + 1}`;
-  dateText.textContent = `日付: ${record.date}`;
-  exerciseText.textContent = `種目: ${record.exerciseName}`;
-  detailText.textContent = `記録: ${record.value}${record.unit} / きつさ: ${record.intensity}`;
-  scoreText.textContent = `スコア: ${record.score} / EXP: ${record.exp}`;
+function formatHistoryAmount(amount, unit) {
+  const roundedAmount = Math.round(Number(amount) * 10) / 10;
+  return `${Number.isInteger(roundedAmount) ? roundedAmount : roundedAmount.toFixed(1)}${unit}`;
+}
 
-  if (record.mode === "reps") {
-    detailText.textContent += ` / 経過時間: ${formatElapsedTime(record.elapsedSeconds)}`;
-  }
+function createHistorySummary() {
+  const summary = {};
 
-  if (record.musicFileName) {
-    scoreText.textContent += ` / 音楽: ${record.musicFileName}`;
-  }
+  records.forEach((record) => {
+    const dateText = record.date || getTodayDateString();
+    const { year, month } = getHistoryDateParts(dateText);
+    const yearKey = String(year);
+    const monthKey = String(month).padStart(2, "0");
+    const exerciseName = record.exerciseName || "未設定";
+    const unit = record.unit || getRecordUnit(record.mode);
+    const exerciseKey = `${exerciseName}__${unit}`;
 
-  historyItem.appendChild(title);
-  historyItem.appendChild(dateText);
-  historyItem.appendChild(exerciseText);
-  historyItem.appendChild(detailText);
-  historyItem.appendChild(scoreText);
-  historyList.prepend(historyItem);
+    if (!summary[yearKey]) {
+      summary[yearKey] = { year, months: {} };
+    }
+
+    if (!summary[yearKey].months[monthKey]) {
+      summary[yearKey].months[monthKey] = { month, days: {} };
+    }
+
+    if (!summary[yearKey].months[monthKey].days[dateText]) {
+      summary[yearKey].months[monthKey].days[dateText] = {
+        date: dateText,
+        totalScore: 0,
+        exerciseNames: new Set(),
+        exercises: {}
+      };
+    }
+
+    const daySummary = summary[yearKey].months[monthKey].days[dateText];
+    daySummary.totalScore += Number(record.score || 0);
+    daySummary.exerciseNames.add(exerciseName);
+
+    if (!daySummary.exercises[exerciseKey]) {
+      daySummary.exercises[exerciseKey] = {
+        name: exerciseName,
+        unit,
+        totalValue: 0,
+        totalScore: 0,
+        count: 0,
+        totalIntensity: 0
+      };
+    }
+
+    const exerciseSummary = daySummary.exercises[exerciseKey];
+    exerciseSummary.totalValue += Number(record.value || 0);
+    exerciseSummary.totalScore += Number(record.score || 0);
+    exerciseSummary.count += 1;
+    exerciseSummary.totalIntensity += Number(record.intensity || 0);
+  });
+
+  return summary;
+}
+
+function appendHistoryExercise(parent, exerciseSummary) {
+  const exerciseItem = document.createElement("li");
+  const averageIntensity = exerciseSummary.count === 0
+    ? 0
+    : exerciseSummary.totalIntensity / exerciseSummary.count;
+
+  exerciseItem.className = "history-exercise-item";
+  exerciseItem.textContent = `${exerciseSummary.name}　合計${formatHistoryAmount(exerciseSummary.totalValue, exerciseSummary.unit)}　${exerciseSummary.totalScore}pt　${exerciseSummary.count}件　平均きつさ${averageIntensity.toFixed(1)}`;
+  parent.appendChild(exerciseItem);
+}
+
+function appendHistoryDay(parent, daySummary, shouldOpen) {
+  const dayItem = document.createElement("li");
+  const dayDetails = document.createElement("details");
+  const dayTitle = document.createElement("summary");
+  const exerciseList = document.createElement("ul");
+  const goalText = daySummary.totalScore >= targetScore ? "達成" : "挑戦中";
+  const exerciseCount = daySummary.exerciseNames.size;
+
+  dayItem.className = "history-day-item";
+  dayDetails.open = shouldOpen;
+  dayTitle.textContent = `${formatHistoryDate(daySummary.date)}　${daySummary.totalScore} / ${targetScore}pt　${goalText}　${exerciseCount}種目`;
+  exerciseList.className = "history-exercise-list";
+
+  Object.values(daySummary.exercises)
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .forEach((exerciseSummary) => {
+      appendHistoryExercise(exerciseList, exerciseSummary);
+    });
+
+  dayDetails.appendChild(dayTitle);
+  dayDetails.appendChild(exerciseList);
+  dayItem.appendChild(dayDetails);
+  parent.appendChild(dayItem);
+}
+
+function appendHistoryMonth(parent, monthSummary, shouldOpen) {
+  const monthItem = document.createElement("li");
+  const monthDetails = document.createElement("details");
+  const monthTitle = document.createElement("summary");
+  const dayList = document.createElement("ul");
+
+  monthItem.className = "history-month-item";
+  monthDetails.open = shouldOpen;
+  monthTitle.textContent = `${monthSummary.month}月`;
+  dayList.className = "history-day-list";
+
+  Object.values(monthSummary.days)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .forEach((daySummary, index) => {
+      appendHistoryDay(dayList, daySummary, shouldOpen && index === 0);
+    });
+
+  monthDetails.appendChild(monthTitle);
+  monthDetails.appendChild(dayList);
+  monthItem.appendChild(monthDetails);
+  parent.appendChild(monthItem);
+}
+
+function appendHistoryYear(parent, yearSummary, shouldOpen) {
+  const yearItem = document.createElement("li");
+  const yearDetails = document.createElement("details");
+  const yearTitle = document.createElement("summary");
+  const monthList = document.createElement("ul");
+
+  yearItem.className = "history-year-item";
+  yearDetails.open = shouldOpen;
+  yearTitle.textContent = `${yearSummary.year}年`;
+  monthList.className = "history-month-list";
+
+  Object.values(yearSummary.months)
+    .sort((a, b) => b.month - a.month)
+    .forEach((monthSummary, index) => {
+      appendHistoryMonth(monthList, monthSummary, shouldOpen && index === 0);
+    });
+
+  yearDetails.appendChild(yearTitle);
+  yearDetails.appendChild(monthList);
+  yearItem.appendChild(yearDetails);
+  parent.appendChild(yearItem);
 }
 
 function renderHistory() {
   historyList.innerHTML = "";
   emptyHistory.classList.toggle("hidden", records.length > 0);
 
-  records
-    .slice()
-    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-    .forEach((record, index) => {
-      addHistoryRecord(record, index);
+  if (records.length === 0) {
+    return;
+  }
+
+  Object.values(createHistorySummary())
+    .sort((a, b) => b.year - a.year)
+    .forEach((yearSummary, index) => {
+      appendHistoryYear(historyList, yearSummary, index === 0);
     });
 }
 
