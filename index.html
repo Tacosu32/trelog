@@ -272,6 +272,55 @@
       </div>
     </section>
 
+    <section class="panel trainer-settings-panel" aria-labelledby="trainer-settings-title">
+      <div class="section-heading">
+        <h2 id="trainer-settings-title">トレーナー画像設定</h2>
+        <span id="custom-trainer-status" class="dev-scoring-status">デフォルト</span>
+      </div>
+      <div class="custom-trainer-preview">
+        <div class="trainer-visual custom-trainer-preview-visual" aria-hidden="true">
+          <img id="custom-trainer-preview-image" class="trainer-image hidden" alt="">
+          <div class="trainer-face">
+            <span class="trainer-eye"></span>
+            <span class="trainer-eye"></span>
+            <span class="trainer-smile"></span>
+          </div>
+        </div>
+        <div>
+          <strong id="custom-trainer-file-name">未設定</strong>
+          <p id="custom-trainer-meta" class="settings-description">png / jpg / jpeg / webp、5MBまで対応します。</p>
+        </div>
+      </div>
+      <label class="file-picker" for="custom-trainer-file">
+        <span>画像ファイルを選択</span>
+        <small id="custom-trainer-selected-name">未選択</small>
+      </label>
+      <input id="custom-trainer-file" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp">
+      <div class="settings-actions">
+        <button id="apply-custom-trainer-button" class="save-button" type="button">適用</button>
+        <button id="delete-custom-trainer-button" class="secondary-button" type="button">削除 / デフォルトに戻す</button>
+      </div>
+      <p class="settings-description">
+        この画像はこの端末のブラウザ内に保存されます。GitHubにはアップロードされません。
+        ブラウザのサイトデータを削除すると、この画像も消えます。
+      </p>
+    </section>
+
+    <section class="panel backup-panel" aria-labelledby="backup-title">
+      <div class="section-heading">
+        <h2 id="backup-title">データバックアップ</h2>
+      </div>
+      <p class="settings-description">
+        タブを閉じるだけでは記録は消えませんが、ブラウザのサイトデータ削除やDevToolsのClear site dataを行うと、記録・設定・カスタム画像が消えます。必要に応じてバックアップしてください。
+      </p>
+      <div class="settings-actions">
+        <button id="export-backup-button" class="save-button" type="button">JSONバックアップを書き出す</button>
+        <label class="backup-import-picker" for="import-backup-file">JSONバックアップを読み込む</label>
+      </div>
+      <input id="import-backup-file" class="visually-hidden" type="file" accept="application/json,.json">
+      <p id="backup-status" class="settings-description">画像本体は今回のバックアップ対象外です。</p>
+    </section>
+
     <section id="debug-panel" class="debug-panel">
       <details>
         <summary>開発用デバッグ</summary>

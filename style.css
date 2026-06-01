@@ -597,6 +597,52 @@ input[type="radio"] {
   white-space: pre-wrap;
 }
 
+.trainer-settings-panel,
+.backup-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.custom-trainer-preview {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.custom-trainer-preview-visual {
+  height: 132px;
+}
+
+.custom-trainer-preview strong {
+  display: block;
+  margin-bottom: 6px;
+  overflow-wrap: anywhere;
+  font-size: 0.96rem;
+}
+
+.settings-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.backup-import-picker {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 900;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .timer-card {
   display: flex;
   align-items: center;
@@ -1497,7 +1543,9 @@ input[type="radio"] {
   .session-main,
   .result-summary,
   .result-score-grid,
-  .result-progress {
+  .result-progress,
+  .custom-trainer-preview,
+  .settings-actions {
     grid-template-columns: 1fr;
   }
 

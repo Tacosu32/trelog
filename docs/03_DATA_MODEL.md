@@ -230,3 +230,46 @@ localStorageには保存しない。
 | 60秒以上 | `1.5分` |
 
 スコア計算では `elapsedSeconds / 60` を分換算値として使う。
+## CustomTrainerImage
+
+ユーザー個人の端末だけで使うトレーナー画像はIndexedDBに保存する。
+
+- database: `trelog_user_assets`
+- store: `trainer_images`
+- key: `customTrainerImage`
+
+保存する値は以下とする。
+
+| field | 内容 |
+| --- | --- |
+| blob | 画像ファイル本体 |
+| fileName | 元ファイル名 |
+| mimeType | MIME type |
+| savedAt | 保存日時のISO文字列 |
+
+対応形式は `image/png`、`image/jpeg`、`image/webp` とし、最大サイズは5MB程度までとする。
+
+## BackupJson
+
+設定画面から書き出すバックアップJSONの形式は以下とする。
+
+```json
+{
+  "version": 1,
+  "exportedAt": "2026-06-01T00:00:00.000Z",
+  "app": "trelog",
+  "localStorage": {
+    "trelog_records": [],
+    "trelog_state": null,
+    "trelog_dev_scoring_config": null
+  },
+  "trainerImageMeta": {
+    "hasCustomImage": false,
+    "fileName": null,
+    "mimeType": null,
+    "savedAt": null
+  }
+}
+```
+
+今回のバックアップではカスタムトレーナー画像本体は含めず、メタ情報のみ含める。
