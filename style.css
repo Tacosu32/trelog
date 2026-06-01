@@ -31,6 +31,13 @@ button,
 input,
 select {
   font: inherit;
+  font-size: 1rem;
+}
+
+button {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .app-shell {
@@ -689,12 +696,14 @@ input[type="radio"] {
 
 .result-celebration span {
   position: absolute;
-  top: -34px;
+  top: -12vh;
   width: 12px;
   height: 28px;
   border-radius: 999px;
   background: var(--accent);
   opacity: 0;
+  will-change: transform, opacity;
+  --fall-drift: 0px;
 }
 
 .result-celebration span:nth-child(n + 4) {
@@ -710,84 +719,96 @@ input[type="radio"] {
 }
 
 .result-screen.goal-complete .result-celebration span {
-  animation: result-confetti 2.6s ease-out forwards;
+  animation: result-confetti 2.6s linear forwards;
 }
 
 .result-screen.level-up .result-celebration span {
-  animation: result-confetti 2.4s ease-out forwards;
+  animation: result-confetti 2.4s linear forwards;
 }
 
 .result-screen.ticket-reward .result-celebration span {
-  animation: result-confetti 2.4s ease-out forwards;
+  animation: result-confetti 2.4s linear forwards;
 }
 
 .result-celebration span:first-child {
   left: 20%;
   background: var(--primary);
+  --fall-drift: -28px;
 }
 
 .result-celebration span:nth-child(2) {
   left: 50%;
   animation-delay: 0.1s;
+  --fall-drift: 18px;
 }
 
 .result-celebration span:nth-child(3) {
   left: 78%;
   background: var(--secondary);
   animation-delay: 0.18s;
+  --fall-drift: -16px;
 }
 
 .result-celebration span:nth-child(4) {
   left: 12%;
   background: var(--secondary);
   animation-delay: 0.05s;
+  --fall-drift: 24px;
 }
 
 .result-celebration span:nth-child(5) {
   left: 34%;
   background: var(--primary);
   animation-delay: 0.14s;
+  --fall-drift: -12px;
 }
 
 .result-celebration span:nth-child(6) {
   left: 66%;
   animation-delay: 0.22s;
+  --fall-drift: 30px;
 }
 
 .result-celebration span:nth-child(7) {
   left: 88%;
   background: var(--primary);
   animation-delay: 0.3s;
+  --fall-drift: -22px;
 }
 
 .result-celebration span:nth-child(8) {
   left: 5%;
   background: var(--accent);
   animation-delay: 0.42s;
+  --fall-drift: 16px;
 }
 
 .result-celebration span:nth-child(9) {
   left: 26%;
   background: var(--secondary);
   animation-delay: 0.36s;
+  --fall-drift: 34px;
 }
 
 .result-celebration span:nth-child(10) {
   left: 58%;
   background: var(--primary);
   animation-delay: 0.48s;
+  --fall-drift: -32px;
 }
 
 .result-celebration span:nth-child(11) {
   left: 73%;
   background: var(--accent);
   animation-delay: 0.58s;
+  --fall-drift: 14px;
 }
 
 .result-celebration span:nth-child(12) {
   left: 94%;
   background: var(--secondary);
   animation-delay: 0.5s;
+  --fall-drift: -38px;
 }
 
 .result-screen.sparkle .result-celebration span:nth-child(n + 4) {
@@ -1043,6 +1064,7 @@ input[type="radio"] {
   padding: 0 12px;
   background: #fffdf9;
   color: var(--ink);
+  font-size: 1rem;
   font-weight: 800;
 }
 
@@ -1068,10 +1090,13 @@ input[type="radio"] {
   background: #fffdf9;
   color: var(--ink);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 900;
   text-align: center;
   cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .session-music-panel {
@@ -1166,16 +1191,21 @@ input[type="radio"] {
 @keyframes result-confetti {
   0% {
     opacity: 0;
-    transform: translateY(0) rotate(0deg);
+    transform: translate3d(0, -8vh, 0) rotate(0deg);
   }
 
-  20% {
+  12% {
     opacity: 1;
+  }
+
+  72% {
+    opacity: 1;
+    transform: translate3d(calc(var(--fall-drift) * 0.65), 68vh, 0) rotate(300deg);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(calc(100vh + 90px)) rotate(420deg);
+    transform: translate3d(var(--fall-drift), calc(112vh + 90px), 0) rotate(540deg);
   }
 }
 
