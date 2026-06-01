@@ -650,6 +650,10 @@ input[type="radio"] {
   grid-column: 1 / -1;
 }
 
+.backup-panel .settings-actions {
+  grid-template-columns: 1fr;
+}
+
 .backup-import-picker {
   min-height: 50px;
   display: grid;

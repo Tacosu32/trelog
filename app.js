@@ -68,7 +68,8 @@ const resetScoreConfigButton = document.getElementById("reset-score-config-butto
 const customTrainerStatus = document.getElementById("custom-trainer-status");
 const customTrainerSlotElements = document.querySelectorAll("[data-trainer-slot]");
 const deleteAllCustomTrainersButton = document.getElementById("delete-all-custom-trainers-button");
-const exportBackupButton = document.getElementById("export-backup-button");
+const exportLightBackupButton = document.getElementById("export-light-backup-button");
+const exportFullBackupButton = document.getElementById("export-full-backup-button");
 const importBackupFile = document.getElementById("import-backup-file");
 const backupStatus = document.getElementById("backup-status");
 const debugPanel = document.getElementById("debug-panel");
@@ -2398,8 +2399,9 @@ async function handleDeleteAllCustomTrainerImages() {
   }
 }
 
-function getBackupFileName() {
-  return `trelog_backup_${getTodayDateString()}.json`;
+function getBackupFileName(backupType) {
+  const typeLabel = backupType === "full" ? "full" : "light";
+  return `trelog_backup_${typeLabel}_${getTodayDateString()}.json`;
 }
 
 function blobToDataUrl(blob) {
@@ -2424,8 +2426,12 @@ function dataUrlToFile(dataUrl, fileName, mimeType) {
   return new File([bytes], fileName || "custom-trainer.png", { type: detectedMimeType });
 }
 
-async function getTrainerImagesBackupPayload() {
+async function getTrainerImagesBackupPayload(includeImageData) {
   const payload = getTrainerImagesMetaPayload();
+
+  if (!includeImageData) {
+    return payload;
+  }
 
   await Promise.all(Object.keys(customTrainerSlots).map(async (slotKey) => {
     const slotImage = customTrainerImages[slotKey];
@@ -2437,9 +2443,12 @@ async function getTrainerImagesBackupPayload() {
   return payload;
 }
 
-async function buildBackupData() {
+async function buildBackupData(backupType = "light") {
+  const includeImageData = backupType === "full";
+
   return {
     version: 2,
+    backupType,
     exportedAt: new Date().toISOString(),
     app: "trelog",
     localStorage: {
@@ -2447,7 +2456,7 @@ async function buildBackupData() {
       trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null"),
       trelog_dev_scoring_config: JSON.parse(localStorage.getItem(devScoringConfigStorageKey) || "null")
     },
-    trainerImages: await getTrainerImagesBackupPayload()
+    trainerImages: await getTrainerImagesBackupPayload(includeImageData)
   };
 }
 
@@ -2464,13 +2473,13 @@ function downloadJsonFile(fileName, data) {
   URL.revokeObjectURL(url);
 }
 
-async function exportBackupData() {
-  const backupData = await buildBackupData();
-  downloadJsonFile(getBackupFileName(), backupData);
-  backupStatus.textContent = Object.keys(customTrainerImages).length > 0
-    ? "画像本体をData URLとして含めたJSONを書き出しました。"
-    : "JSONを書き出しました。";
-  showMessage("バックアップJSONを書き出しました。", true);
+async function exportBackupData(backupType) {
+  const backupData = await buildBackupData(backupType);
+  downloadJsonFile(getBackupFileName(backupType), backupData);
+  backupStatus.textContent = backupType === "full"
+    ? "完全バックアップを書き出しました。画像本体のData URLを含みます。"
+    : "軽量バックアップを書き出しました。画像本体は含まれていません。";
+  showMessage(`${backupType === "full" ? "完全" : "軽量"}バックアップJSONを書き出しました。`, true);
 }
 
 function restoreBackupLocalStorage(backupData) {
@@ -2509,8 +2518,12 @@ async function restoreTrainerImagesFromBackup(backupData) {
       return;
     }
 
-    const file = dataUrlToFile(imageData.dataUrl, imageData.fileName, imageData.mimeType);
-    await writeTrainerImageRecord(slotKey, file, imageData.savedAt || new Date().toISOString());
+    try {
+      const file = dataUrlToFile(imageData.dataUrl, imageData.fileName, imageData.mimeType);
+      await writeTrainerImageRecord(slotKey, file, imageData.savedAt || new Date().toISOString());
+    } catch (error) {
+      // Lightweight backups have no dataUrl, and broken image payloads should not block record restore.
+    }
   }));
 }
 
@@ -2627,7 +2640,12 @@ customTrainerSlotElements.forEach((slotElement) => {
   });
 });
 deleteAllCustomTrainersButton.addEventListener("click", handleDeleteAllCustomTrainerImages);
-exportBackupButton.addEventListener("click", exportBackupData);
+exportLightBackupButton.addEventListener("click", () => {
+  exportBackupData("light");
+});
+exportFullBackupButton.addEventListener("click", () => {
+  exportBackupData("full");
+});
 importBackupFile.addEventListener("change", () => {
   importBackupData(importBackupFile.files[0]);
 });

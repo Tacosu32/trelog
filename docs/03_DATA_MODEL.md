@@ -341,3 +341,15 @@ version 2のバックアップJSONは以下の形式とする。
 ```
 
 `dataUrl` がある場合、インポート時にIndexedDBへ画像本体を復元する。version 1バックアップはlocalStorage部分のみ復元する。
+
+## BackupJsonV2 Light / Full
+
+version 2のバックアップには `backupType` を含める。
+
+- `backupType: "light"`: 画像メタ情報のみを含め、各 `dataUrl` は `null` とする。
+- `backupType: "full"`: 画像メタ情報に加え、設定済み画像の `dataUrl` を含める。
+
+軽量バックアップのファイル名は `trelog_backup_light_YYYY-MM-DD.json` とする。
+完全バックアップのファイル名は `trelog_backup_full_YYYY-MM-DD.json` とする。
+
+インポート時は `dataUrl` がある画像だけIndexedDBへ復元し、`dataUrl` がない画像は復元しない。localStorage部分は軽量・完全のどちらでも復元する。

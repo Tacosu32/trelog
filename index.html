@@ -414,12 +414,17 @@
       <p class="settings-description">
         タブを閉じるだけでは記録は消えませんが、ブラウザのサイトデータ削除やDevToolsのClear site dataを行うと、記録・設定・カスタム画像が消えます。必要に応じてバックアップしてください。
       </p>
+      <p class="settings-description">
+        軽量バックアップはファイルサイズが小さいですが、カスタムトレーナー画像本体は復元できません。
+        完全バックアップは画像本体も含むためファイルサイズが大きくなりますが、画像も復元できます。
+      </p>
       <div class="settings-actions">
-        <button id="export-backup-button" class="save-button" type="button">JSONバックアップを書き出す</button>
+        <button id="export-light-backup-button" class="save-button" type="button">軽量バックアップをエクスポート</button>
+        <button id="export-full-backup-button" class="save-button" type="button">完全バックアップをエクスポート</button>
         <label class="backup-import-picker" for="import-backup-file">JSONバックアップを読み込む</label>
       </div>
       <input id="import-backup-file" class="visually-hidden" type="file" accept="application/json,.json">
-      <p id="backup-status" class="settings-description">画像本体もData URLとして含めます。画像を設定している場合、JSONサイズが大きくなります。</p>
+      <p id="backup-status" class="settings-description">通常は軽量バックアップ、端末移行や完全復元には完全バックアップを使ってください。</p>
     </section>
 
     <section id="debug-panel" class="debug-panel">
