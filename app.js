@@ -7,6 +7,7 @@ const musicFileInput = document.getElementById("music-file");
 const musicFileName = document.getElementById("music-file-name");
 const musicPlayer = document.getElementById("music-player");
 const playMusicButton = document.getElementById("play-music-button");
+const homeStartRecordButton = document.getElementById("home-start-record-button");
 const startWorkoutButton = document.getElementById("start-workout-button");
 const saveRecordButton = document.getElementById("save-record-button");
 const trainerComment = document.getElementById("trainer-comment");
@@ -75,6 +76,8 @@ const resultNextLevelExp = document.getElementById("result-next-level-exp");
 const resultBadgeList = document.getElementById("result-badge-list");
 const resultBonusList = document.getElementById("result-bonus-list");
 const resultOkButton = document.getElementById("result-ok-button");
+const appViews = document.querySelectorAll(".app-view");
+const navButtons = document.querySelectorAll(".nav-button");
 
 const exerciseCoefficients = {
   "腕立て": { time: 10, reps: 2 },
@@ -98,6 +101,25 @@ let selectedMusicUrl = "";
 let timerState = "idle";
 let elapsedSeconds = 0;
 let timerId = null;
+
+function switchView(viewName) {
+  appViews.forEach((view) => {
+    view.classList.toggle("active", view.dataset.view === viewName);
+  });
+
+  navButtons.forEach((button) => {
+    const isActive = button.dataset.viewTarget === viewName;
+    button.classList.toggle("active", isActive);
+
+    if (isActive) {
+      button.setAttribute("aria-current", "page");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
 function getSelectedExercise() {
   if (exerciseSelect.value === "custom") {
@@ -1466,6 +1488,9 @@ musicFileInput.addEventListener("change", handleMusicFileChange);
 musicPlayer.addEventListener("play", updateSessionDisplay);
 musicPlayer.addEventListener("pause", updateSessionDisplay);
 playMusicButton.addEventListener("click", playSelectedMusic);
+homeStartRecordButton.addEventListener("click", () => {
+  switchView("record");
+});
 startWorkoutButton.addEventListener("click", handleWorkoutButtonClick);
 saveRecordButton.addEventListener("click", () => {
   const result = saveTodayRecord();
@@ -1498,6 +1523,11 @@ document.querySelectorAll('input[name="record-type"]').forEach((recordTypeInput)
 });
 document.querySelectorAll('input[name="effort"]').forEach((effortInput) => {
   effortInput.addEventListener("change", updateGoalRecommendation);
+});
+navButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    switchView(button.dataset.viewTarget);
+  });
 });
 
 initializeApp();

@@ -10,10 +10,11 @@
 </head>
 <body>
   <main class="app-shell">
+    <section id="home-view" class="app-view active" data-view="home" aria-labelledby="home-title">
     <header class="app-header">
       <div>
         <p class="eyebrow">今日も一緒に</p>
-        <h1>トレログ</h1>
+        <h1 id="home-title">トレログ</h1>
       </div>
       <p id="today-label" class="today-label">α版</p>
     </header>
@@ -93,6 +94,17 @@
       </div>
     </section>
 
+    <div class="home-action">
+      <button id="home-start-record-button" class="primary-button" type="button">記録を開始する</button>
+    </div>
+    </section>
+
+    <section id="record-view" class="app-view" data-view="record" aria-labelledby="record-view-title">
+      <div class="view-heading">
+        <p class="eyebrow">今日のトレーニング</p>
+        <h2 id="record-view-title">記録</h2>
+      </div>
+
     <section class="panel" aria-labelledby="record-title">
       <div class="section-heading">
         <h2 id="record-title">種目ログ入力</h2>
@@ -157,6 +169,13 @@
       <button id="save-record-button" class="save-button" type="button">種目ログを保存</button>
       <p id="form-message" class="form-message" aria-live="polite"></p>
     </div>
+    </section>
+
+    <section id="history-view" class="app-view" data-view="history" aria-labelledby="history-view-title">
+      <div class="view-heading">
+        <p class="eyebrow">積み上げを確認</p>
+        <h2 id="history-view-title">履歴</h2>
+      </div>
 
     <section class="panel history-panel" aria-labelledby="history-title">
       <div class="section-heading">
@@ -169,6 +188,13 @@
       <ul id="history-list" class="history-list"></ul>
       <div id="rest-dates" class="rest-dates"></div>
     </section>
+    </section>
+
+    <section id="settings-view" class="app-view" data-view="settings" aria-labelledby="settings-view-title">
+      <div class="view-heading">
+        <p class="eyebrow">開発用</p>
+        <h2 id="settings-view-title">設定</h2>
+      </div>
 
     <section id="debug-panel" class="debug-panel">
       <details>
@@ -192,7 +218,15 @@
         <pre id="debug-storage-output"></pre>
       </details>
     </section>
+    </section>
   </main>
+
+  <nav class="bottom-nav" aria-label="画面切り替え">
+    <button class="nav-button active" type="button" data-view-target="home" aria-current="page">ホーム</button>
+    <button class="nav-button" type="button" data-view-target="record">記録</button>
+    <button class="nav-button" type="button" data-view-target="history">履歴</button>
+    <button class="nav-button" type="button" data-view-target="settings">設定</button>
+  </nav>
 
   <section id="session-overlay" class="session-overlay hidden" aria-labelledby="session-title" aria-modal="true" role="dialog">
     <div class="session-screen">
