@@ -121,6 +121,17 @@
 - 任意の日付、昨日、3日前のテスト記録を追加できる
 - `trelog_records` と `trelog_state` の内容を画面に表示できる
 
+### 12. PWA土台
+
+- `src/manifest.json` を用意し、アプリ名、説明、開始URL、表示モード、テーマカラー、アイコン参照を定義する
+- `src/service-worker.js` を用意し、α版の主要ファイルをキャッシュできるようにする
+- キャッシュ対象は `index.html`、`style.css`、`app.js`、`manifest.json` とする
+- 仮アイコンとして `assets/icons/icon.svg` を用意し、manifestから存在するアイコンだけを参照する
+- アイコンファイルが存在する場合は、service workerでキャッシュ対象に含める
+- `index.html` からmanifestを読み込み、theme-colorを指定する
+- `index.html` でservice workerを登録する
+- α版ではPush通知、スマホウィジェット、クラウド保存、ネイティブアプリ化は実装しない
+
 ## 簡易スコア仕様
 
 - 時間式: 分 × 種目係数 × きつさ補正

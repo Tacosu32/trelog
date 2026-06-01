@@ -1,0 +1,17 @@
+{
+  "name": "トレログ",
+  "short_name": "トレログ",
+  "description": "筋トレを毎日続けるための筋トレ版デュオリンゴ風Webアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fff7ed",
+  "theme_color": "#2f9f8f",
+  "icons": [
+    {
+      "src": "../assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
