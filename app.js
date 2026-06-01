@@ -273,6 +273,15 @@ function pauseTimer() {
   timerId = null;
 }
 
+function stopTimerForSave() {
+  clearInterval(timerId);
+  timerId = null;
+  timerState = "paused";
+  startWorkoutButton.textContent = "再開";
+  sessionPauseButton.textContent = "再開";
+  updateTimerDisplay();
+}
+
 function resetTimer() {
   clearInterval(timerId);
   timerId = null;
@@ -438,6 +447,10 @@ function handleSessionPauseButtonClick() {
 }
 
 function handleSessionSaveButtonClick() {
+  if (timerState === "running") {
+    stopTimerForSave();
+  }
+
   const result = saveTodayRecord();
 
   if (result) {
@@ -938,6 +951,10 @@ function getResultAnimationClass(result) {
     return "level-up";
   }
 
+  if (result.levelRewards.length > 0) {
+    return "ticket-reward";
+  }
+
   return "sparkle";
 }
 
@@ -992,7 +1009,7 @@ function showResultOverlay(result) {
   const bonusMessages = [];
   const animationClass = getResultAnimationClass(result);
 
-  resultScreen.classList.remove("goal-complete", "level-up", "sparkle");
+  resultScreen.classList.remove("goal-complete", "level-up", "ticket-reward", "sparkle");
   resultScreen.classList.add(animationClass);
   resultTitle.textContent = getResultTitle(result);
   resultTrainerComment.textContent = getResultTrainerComment(result);
@@ -1031,7 +1048,7 @@ function showResultOverlay(result) {
 
 function closeResultOverlay() {
   resultOverlay.classList.add("hidden");
-  resultScreen.classList.remove("goal-complete", "level-up", "sparkle");
+  resultScreen.classList.remove("goal-complete", "level-up", "ticket-reward", "sparkle");
 }
 
 function toggleSessionMusic() {

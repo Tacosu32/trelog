@@ -93,6 +93,11 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 
 タイマーを一時停止する。
 
+### stopTimerForSave()
+
+セッションの記録終了時に、経過秒数を残したままタイマーだけを停止する。
+`running` 状態から記録して終了を押した場合、保存前にこの関数で計測を止める。
+
 ### resetTimer()
 
 タイマーを停止し、経過時間と開始ボタン表示を初期状態に戻す。
@@ -158,6 +163,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### handleSessionSaveButtonClick()
 
 セッション画面から現在の種目ログを保存する。
+`running` 状態の場合は、まず `stopTimerForSave()` でタイマーを止め、その時点の経過時間を保存値に使える状態にする。
 保存に成功した場合はセッションオーバーレイを閉じ、リザルトオーバーレイを表示する。
 
 ### cancelSession()
@@ -342,7 +348,7 @@ localStorageの `trelog_state` から状態データを読み込む。
 ### getResultAnimationClass(result)
 
 リザルト画面に付与する演出用クラス名を返す。
-今日の目標達成時は紙吹雪多め、レベルアップ時は紙吹雪、通常記録時は控えめなキラキラにする。
+今日の目標達成時、レベルアップ時、休憩チケット獲得時は紙吹雪、通常記録時は控えめなキラキラにする。
 
 ### createResultSummary(record, beforeLevel, levelRewards, goalMarked)
 
@@ -356,6 +362,7 @@ localStorageの `trelog_state` から状態データを読み込む。
 ### showResultOverlay(result)
 
 リザルトオーバーレイへ記録内容、獲得スコア、EXP、今日の進捗、達成率、成長、バッジ、報酬、演出クラスを反映して表示する。
+演出クラスに応じて、オーバーレイ全体に届く紙吹雪または控えめなキラキラをCSSアニメーションで表示する。
 
 ### closeResultOverlay()
 
