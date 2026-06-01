@@ -194,6 +194,54 @@
     </section>
   </main>
 
+  <section id="session-overlay" class="session-overlay hidden" aria-labelledby="session-title" aria-modal="true" role="dialog">
+    <div class="session-screen">
+      <header class="session-header">
+        <span>セッション中</span>
+        <strong id="session-state-label">筋トレ中</strong>
+      </header>
+
+      <div class="session-trainer">
+        <div class="trainer-visual session-trainer-visual" aria-hidden="true">
+          <div class="trainer-face">
+            <span class="trainer-eye"></span>
+            <span class="trainer-eye"></span>
+            <span class="trainer-smile"></span>
+          </div>
+        </div>
+        <div class="speech-bubble session-speech">
+          <p id="session-trainer-comment">スタート！今の種目に集中しよう。</p>
+        </div>
+      </div>
+
+      <section class="session-main" aria-labelledby="session-title">
+        <div>
+          <span>現在の種目</span>
+          <h2 id="session-title">未選択</h2>
+          <p id="session-record-type">時間</p>
+        </div>
+        <strong id="session-timer-display">00:00</strong>
+      </section>
+
+      <section class="session-stats" aria-label="今日の進捗">
+        <div>
+          <span>今日のスコア</span>
+          <strong><span id="session-current-score">0</span> / <span id="session-target-score">100</span></strong>
+        </div>
+        <div>
+          <span>目標到達まで</span>
+          <strong id="session-goal-recommendation">種目を選択</strong>
+        </div>
+      </section>
+
+      <div class="session-actions">
+        <button id="session-pause-button" class="secondary-button" type="button">一時停止</button>
+        <button id="session-save-button" class="save-button" type="button">この種目を記録して終了</button>
+        <button id="session-cancel-button" class="session-cancel-button" type="button">キャンセル</button>
+      </div>
+    </div>
+  </section>
+
   <script src="app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {

@@ -634,6 +634,136 @@ input[type="radio"] {
   white-space: pre-wrap;
 }
 
+.session-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(45, 40, 48, 0.42);
+}
+
+.session-overlay.hidden {
+  display: none;
+}
+
+.session-screen {
+  width: min(100%, 430px);
+  max-height: calc(100vh - 32px);
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff7ed 0%, #eef8f5 100%);
+  box-shadow: 0 20px 60px rgba(45, 40, 48, 0.26);
+}
+
+.session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.session-header span,
+.session-main span,
+.session-stats span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.session-header strong {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--soft-green);
+  color: var(--secondary);
+  font-size: 0.82rem;
+}
+
+.session-trainer {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.session-trainer-visual {
+  height: 126px;
+}
+
+.session-speech {
+  min-height: 110px;
+  display: grid;
+  align-items: center;
+}
+
+.session-main,
+.session-stats {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.session-main {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+}
+
+.session-main h2 {
+  margin-top: 4px;
+  font-size: 1.35rem;
+}
+
+.session-main p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.session-main > strong {
+  font-size: 2.2rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.session-stats {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.session-stats div {
+  display: grid;
+  gap: 5px;
+}
+
+.session-stats strong {
+  line-height: 1.35;
+}
+
+.session-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.session-cancel-button {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+  color: var(--ink);
+  font-weight: 900;
+  cursor: pointer;
+}
+
 @media (max-width: 360px) {
   .app-shell {
     padding-inline: 12px;
@@ -649,5 +779,26 @@ input[type="radio"] {
 
   .speech-bubble {
     font-size: 0.9rem;
+  }
+
+  .session-overlay {
+    padding: 10px;
+  }
+
+  .session-screen {
+    max-height: calc(100vh - 20px);
+    padding: 12px;
+  }
+
+  .session-trainer {
+    grid-template-columns: 92px 1fr;
+  }
+
+  .session-main {
+    grid-template-columns: 1fr;
+  }
+
+  .session-main > strong {
+    font-size: 2rem;
   }
 }

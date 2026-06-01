@@ -7,3 +7,6 @@
 - 正式アイコン作成後、`manifest.json` の icons にPNGアイコン参照を追加し直す
 - GitHub Pages公開後、公開URLでmanifestとservice workerが正しく読めることを確認する
 - PWAとしてのインストール確認を、Chrome DevToolsのApplicationパネルとスマホ実機で行う
+- 音楽プレイリスト機能を検討する
+- 複数音源アップロードを検討する
+- 音楽のループ再生を検討する

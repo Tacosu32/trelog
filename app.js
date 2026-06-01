@@ -39,6 +39,18 @@ const nextLevelExpText = document.getElementById("next-level-exp");
 const levelProgressFill = document.getElementById("level-progress-fill");
 const debugPanel = document.getElementById("debug-panel");
 const debugStorageOutput = document.getElementById("debug-storage-output");
+const sessionOverlay = document.getElementById("session-overlay");
+const sessionStateLabel = document.getElementById("session-state-label");
+const sessionTrainerComment = document.getElementById("session-trainer-comment");
+const sessionTitle = document.getElementById("session-title");
+const sessionRecordType = document.getElementById("session-record-type");
+const sessionTimerDisplay = document.getElementById("session-timer-display");
+const sessionCurrentScore = document.getElementById("session-current-score");
+const sessionTargetScore = document.getElementById("session-target-score");
+const sessionGoalRecommendation = document.getElementById("session-goal-recommendation");
+const sessionPauseButton = document.getElementById("session-pause-button");
+const sessionSaveButton = document.getElementById("session-save-button");
+const sessionCancelButton = document.getElementById("session-cancel-button");
 
 const exerciseCoefficients = {
   "腕立て": { time: 10, reps: 2 },
@@ -59,7 +71,7 @@ const effortMultipliers = {
 let records = [];
 let appState = getDefaultState();
 let selectedMusicUrl = "";
-let timerState = "stopped";
+let timerState = "idle";
 let elapsedSeconds = 0;
 let timerId = null;
 
@@ -142,6 +154,10 @@ function showMessage(message, isSuccess) {
 
 function updateTrainerComment(message) {
   trainerComment.textContent = message;
+
+  if (sessionTrainerComment) {
+    sessionTrainerComment.textContent = message;
+  }
 }
 
 function validateRecord(exercise, amount, recordType) {
@@ -191,17 +207,22 @@ function getElapsedMinutes() {
 
 function updateTimerDisplay() {
   timerDisplay.textContent = formatElapsedTime(elapsedSeconds);
+  sessionTimerDisplay.textContent = formatElapsedTime(elapsedSeconds);
 
   if (getRecordType() === "time") {
     recordAmountInput.value = elapsedSeconds > 0 ? getElapsedMinutes() : "";
   }
+
+  updateSessionDisplay();
 }
 
 function startTimer() {
   timerState = "running";
   startWorkoutButton.textContent = "一時停止";
+  sessionPauseButton.textContent = "一時停止";
   updateTrainerComment("スタート！タイマーを見ながら、今の種目に集中しよう。");
   showMessage("タイマーを開始しました。", true);
+  updateSessionDisplay();
 
   if (timerId === null) {
     timerId = setInterval(() => {
@@ -214,8 +235,10 @@ function startTimer() {
 function pauseTimer() {
   timerState = "paused";
   startWorkoutButton.textContent = "再開";
+  sessionPauseButton.textContent = "再開";
   updateTrainerComment("一時停止中だよ。息を整えたら再開しよう。");
   showMessage("タイマーを一時停止しました。", true);
+  updateSessionDisplay();
 
   clearInterval(timerId);
   timerId = null;
@@ -224,13 +247,19 @@ function pauseTimer() {
 function resetTimer() {
   clearInterval(timerId);
   timerId = null;
-  timerState = "stopped";
+  timerState = "idle";
   elapsedSeconds = 0;
   startWorkoutButton.textContent = "筋トレ開始";
+  sessionPauseButton.textContent = "一時停止";
   updateTimerDisplay();
 }
 
 function handleWorkoutButtonClick() {
+  if (timerState === "idle") {
+    startSession();
+    return;
+  }
+
   if (timerState === "running") {
     pauseTimer();
     return;
@@ -242,6 +271,94 @@ function handleWorkoutButtonClick() {
   if (wasPaused) {
     updateTrainerComment("再開だね。少しずつリズムを戻していこう。");
   }
+}
+
+function openSessionOverlay() {
+  sessionOverlay.classList.remove("hidden");
+  updateSessionDisplay();
+}
+
+function closeSessionOverlay() {
+  sessionOverlay.classList.add("hidden");
+}
+
+function getRecordTypeText(recordType) {
+  return recordType === "reps" ? "回数" : "時間";
+}
+
+function getGoalRecommendationText(exercise, recordType, effort) {
+  const unit = getRecordUnit(recordType);
+  const modeText = getRecordTypeText(recordType);
+  const neededAmount = calculateNeededAmount(exercise || "自由種目", recordType, effort);
+
+  if (calculateTodayScore() >= targetScore) {
+    return "今日の目標は達成済みです";
+  }
+
+  if (exercise === "") {
+    return "種目を選ぶと目安を表示します";
+  }
+
+  if (neededAmount === null) {
+    return `${exercise} / ${modeText}ではスコアが増えません`;
+  }
+
+  return `あと${neededAmount}${unit}`;
+}
+
+function updateSessionDisplay() {
+  if (!sessionOverlay) {
+    return;
+  }
+
+  const exercise = getSelectedExercise();
+  const recordType = getRecordType();
+  const effort = getSelectedEffort();
+  const stateText = timerState === "paused" ? "一時停止中" : timerState === "running" ? "筋トレ中" : "開始前";
+
+  sessionStateLabel.textContent = stateText;
+  sessionTitle.textContent = exercise || "未選択";
+  sessionRecordType.textContent = `${getRecordTypeText(recordType)}で記録`;
+  sessionTimerDisplay.textContent = formatElapsedTime(elapsedSeconds);
+  sessionCurrentScore.textContent = `${calculateTodayScore()}`;
+  sessionTargetScore.textContent = `${targetScore}`;
+  sessionGoalRecommendation.textContent = getGoalRecommendationText(exercise, recordType, effort);
+}
+
+function startSession() {
+  const exercise = getSelectedExercise();
+
+  if (exercise === "") {
+    updateTrainerComment("先に種目を選ぼう。決めたらすぐ一緒に始められるよ。");
+    showMessage("記録する種目を1つ選んでね。", false);
+    return;
+  }
+
+  openSessionOverlay();
+  startTimer();
+}
+
+function handleSessionPauseButtonClick() {
+  if (timerState === "running") {
+    pauseTimer();
+    return;
+  }
+
+  startTimer();
+  updateTrainerComment("再開だね。少しずつリズムを戻していこう。");
+}
+
+function handleSessionSaveButtonClick() {
+  if (saveTodayRecord()) {
+    closeSessionOverlay();
+  }
+}
+
+function cancelSession() {
+  resetTimer();
+  closeSessionOverlay();
+  updateTrainerComment("セッションをキャンセルしたよ。準備が整ったらまた始めよう。");
+  showMessage("保存せずにセッションを終了しました。", true);
 }
 
 function getExerciseCoefficient(exercise, recordType) {
@@ -296,8 +413,7 @@ function updateGoalRecommendation() {
   const exercise = getSelectedExercise();
   const recordType = getRecordType();
   const effort = getSelectedEffort();
-  const unit = getRecordUnit(recordType);
-  const modeText = recordType === "reps" ? "回数" : "時間";
+  const modeText = getRecordTypeText(recordType);
   const neededAmount = calculateNeededAmount(exercise || "自由種目", recordType, effort);
 
   if (calculateTodayScore() >= targetScore) {
@@ -315,7 +431,8 @@ function updateGoalRecommendation() {
     return;
   }
 
-  goalRecommendation.textContent = `あと${neededAmount}${unit}で今日の目標に到達します`;
+  goalRecommendation.textContent = `${getGoalRecommendationText(exercise, recordType, effort)}で今日の目標に到達します`;
+  updateSessionDisplay();
 }
 
 function calculateTodayScore() {
@@ -526,6 +643,7 @@ function updateAllStats() {
   updateDashboard();
   renderRestDates();
   updateDebugStorageOutput();
+  updateSessionDisplay();
 }
 
 function renderRestDates() {
@@ -739,7 +857,7 @@ function saveTodayRecord() {
 
   if (errorMessage !== "") {
     showMessage(errorMessage, false);
-    return;
+    return false;
   }
 
   const score = calculateScore(exercise, recordType, amount, effort);
@@ -759,6 +877,7 @@ function saveTodayRecord() {
   }
 
   showMessage("種目ログを保存しました。", true);
+  return true;
 }
 
 function refreshAfterDebugAction(message) {
@@ -871,6 +990,9 @@ musicFileInput.addEventListener("change", handleMusicFileChange);
 playMusicButton.addEventListener("click", playSelectedMusic);
 startWorkoutButton.addEventListener("click", handleWorkoutButtonClick);
 saveRecordButton.addEventListener("click", saveTodayRecord);
+sessionPauseButton.addEventListener("click", handleSessionPauseButtonClick);
+sessionSaveButton.addEventListener("click", handleSessionSaveButtonClick);
+sessionCancelButton.addEventListener("click", cancelSession);
 exerciseSelect.addEventListener("change", handleExerciseChange);
 customExerciseName.addEventListener("input", updateGoalRecommendation);
 recordAmountInput.addEventListener("input", updateGoalRecommendation);
