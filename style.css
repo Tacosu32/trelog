@@ -13,6 +13,7 @@
   --shadow: 0 14px 30px rgba(75, 55, 35, 0.12);
   --bottom-nav-height: 72px;
   --safe-bottom-space: env(safe-area-inset-bottom, 0px);
+  --mobile-browser-bottom-buffer: 72px;
 }
 
 * {
@@ -22,6 +23,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100svh;
   min-height: 100dvh;
   background:
     linear-gradient(180deg, #fff7ed 0%, var(--bg) 42%, #eef8f5 100%);
@@ -46,9 +48,10 @@ button {
 .app-shell {
   width: min(100%, 430px);
   min-height: 100vh;
+  min-height: 100svh;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 20px 16px calc(var(--bottom-nav-height) + var(--safe-bottom-space) + 44px);
+  padding: 20px 16px calc(var(--bottom-nav-height) + var(--safe-bottom-space) + 56px);
 }
 
 .app-view {
@@ -985,13 +988,19 @@ input[type="radio"] {
   inset: 0;
   z-index: 20;
   display: grid;
-  align-items: stretch;
+  align-items: start;
   justify-items: center;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
   min-height: 100vh;
+  min-height: 100svh;
   min-height: 100dvh;
-  overflow: auto;
-  padding: 16px 16px calc(24px + var(--safe-bottom-space));
+  overflow-y: auto;
+  padding: 16px 16px calc(var(--mobile-browser-bottom-buffer) + var(--safe-bottom-space));
   background: rgba(45, 40, 48, 0.42);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .session-overlay.hidden,
@@ -1003,11 +1012,12 @@ input[type="radio"] {
 .result-screen {
   width: min(100%, 430px);
   max-height: calc(100vh - 32px);
-  max-height: calc(100dvh - 40px - var(--safe-bottom-space));
+  max-height: calc(100svh - 32px - var(--safe-bottom-space));
+  max-height: calc(100dvh - 32px - var(--safe-bottom-space));
   display: grid;
   gap: 12px;
-  overflow: auto;
-  padding: 16px 16px calc(22px + var(--safe-bottom-space));
+  overflow-y: auto;
+  padding: 16px 16px calc(var(--mobile-browser-bottom-buffer) + var(--safe-bottom-space));
   border-radius: 8px;
   background: linear-gradient(180deg, #fff7ed 0%, #eef8f5 100%);
   box-shadow: 0 20px 60px rgba(45, 40, 48, 0.26);
@@ -1021,7 +1031,8 @@ input[type="radio"] {
 
 .result-screen {
   position: relative;
-  overflow: hidden auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .result-screen.goal-complete,
@@ -1534,11 +1545,11 @@ input[type="radio"] {
 .session-actions {
   display: grid;
   gap: 10px;
-  padding-bottom: max(4px, var(--safe-bottom-space));
+  padding-bottom: calc(28px + var(--safe-bottom-space));
 }
 
 #result-ok-button {
-  margin-bottom: max(4px, var(--safe-bottom-space));
+  margin-bottom: calc(28px + var(--safe-bottom-space));
 }
 
 .session-cancel-button {
@@ -1588,7 +1599,7 @@ input[type="radio"] {
 @media (max-width: 360px) {
   .app-shell {
     padding-inline: 12px;
-    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom-space) + 40px);
+    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom-space) + 52px);
   }
 
   .trainer-area {
@@ -1604,19 +1615,21 @@ input[type="radio"] {
   }
 
   .session-overlay {
-    padding: 10px 10px calc(20px + var(--safe-bottom-space));
+    padding: 10px 10px calc(var(--mobile-browser-bottom-buffer) + var(--safe-bottom-space));
   }
 
   .session-screen {
     max-height: calc(100vh - 20px);
-    max-height: calc(100dvh - 24px - var(--safe-bottom-space));
-    padding: 12px 12px calc(20px + var(--safe-bottom-space));
+    max-height: calc(100svh - 20px - var(--safe-bottom-space));
+    max-height: calc(100dvh - 20px - var(--safe-bottom-space));
+    padding: 12px 12px calc(var(--mobile-browser-bottom-buffer) + var(--safe-bottom-space));
   }
 
   .result-screen {
     max-height: calc(100vh - 20px);
-    max-height: calc(100dvh - 24px - var(--safe-bottom-space));
-    padding: 12px 12px calc(20px + var(--safe-bottom-space));
+    max-height: calc(100svh - 20px - var(--safe-bottom-space));
+    max-height: calc(100dvh - 20px - var(--safe-bottom-space));
+    padding: 12px 12px calc(var(--mobile-browser-bottom-buffer) + var(--safe-bottom-space));
   }
 
   .session-trainer,
