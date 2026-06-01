@@ -225,12 +225,36 @@
 
       <section class="session-stats" aria-label="今日の進捗">
         <div>
-          <span>今日のスコア</span>
+          <span>今日の見込みスコア</span>
           <strong><span id="session-current-score">0</span> / <span id="session-target-score">100</span></strong>
+          <small id="session-projected-score">見込み 0pt</small>
         </div>
         <div>
           <span>目標到達まで</span>
           <strong id="session-goal-recommendation">種目を選択</strong>
+        </div>
+      </section>
+
+      <section id="session-reps-panel" class="session-reps-panel hidden" aria-labelledby="session-reps-title">
+        <label id="session-reps-title" for="session-reps-input">今回の回数</label>
+        <div class="session-reps-input-row">
+          <input id="session-reps-input" type="number" min="0" inputmode="numeric" placeholder="10">
+          <span>回</span>
+        </div>
+        <div class="session-reps-buttons">
+          <button class="session-reps-add-button" type="button" data-reps-add="1">+1</button>
+          <button class="session-reps-add-button" type="button" data-reps-add="5">+5</button>
+          <button class="session-reps-add-button" type="button" data-reps-add="10">+10</button>
+          <button id="session-reps-clear-button" type="button">クリア</button>
+        </div>
+      </section>
+
+      <section class="session-music-panel" aria-labelledby="session-music-title">
+        <span id="session-music-title">音楽</span>
+        <strong id="session-music-file-name">未選択</strong>
+        <div class="session-music-actions">
+          <label class="session-music-picker" for="music-file">音楽ファイル選択</label>
+          <button id="session-music-toggle-button" type="button">再生</button>
         </div>
       </section>
 

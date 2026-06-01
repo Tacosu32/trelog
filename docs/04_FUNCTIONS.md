@@ -42,6 +42,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 
 分または回の入力値を返す。
 時間式でタイマーが動いていた場合は、タイマーの経過分を記録値として返す。
+回数式でセッションオーバーレイが開いている場合は、セッション内の回数入力値を返す。
 
 ### getSelectedEffort()
 
@@ -76,6 +77,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### getElapsedMinutes()
 
 タイマーの経過秒数を分に変換し、時間式の記録値に使える形で返す。
+小数1桁に丸める。
 
 ### updateTimerDisplay()
 
@@ -109,18 +111,41 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 
 セッションオーバーレイを非表示にする。
 
+### isSessionOpen()
+
+セッションオーバーレイが表示中かどうかを返す。
+
 ### getRecordTypeText(recordType)
 
 記録方式の表示用テキストを返す。
 `time` は「時間」、`reps` は「回数」とする。
 
-### getGoalRecommendationText(exercise, recordType, effort)
+### getGoalRecommendationText(exercise, recordType, effort, projectedScore)
 
 セッション画面と今日の目標カードで使う、目標到達までの目安文言を返す。
+セッション見込みスコアを受け取り、今日の保存済みスコアと合算して残り目安を計算する。
+
+### calculateSessionAmount(recordType)
+
+セッション中の入力量を返す。
+時間式では経過分、回数式ではセッション内の回数入力値を返す。
+
+### calculateSessionProjectedScore(exercise, recordType, effort)
+
+セッションを保存した場合に増える見込みスコアを計算する。
+
+### calculateRemainingAmountFromScore(remainingScore, exercise, recordType, effort)
+
+残りスコア、種目係数、きつさ補正から、目標到達までに必要な分または回数を計算する。
+
+### updateSessionRecordControls()
+
+記録方式に応じて、セッション内の回数入力欄の表示・非表示を切り替える。
+回数式でメイン画面に入力済みの回数があれば、セッション入力欄へ引き継ぐ。
 
 ### updateSessionDisplay()
 
-セッションオーバーレイ内の状態表示、種目名、記録方式、経過時間、今日のスコア、目標到達目安を更新する。
+セッションオーバーレイ内の状態表示、種目名、記録方式、経過時間、見込み込みの今日のスコア、セッション見込みスコア、目標到達目安、音楽ファイル名を更新する。
 
 ### startSession()
 
@@ -275,11 +300,34 @@ localStorageの `trelog_state` から状態データを読み込む。
 ### handleMusicFileChange()
 
 音楽ファイルが選択されたときに、ファイル名を画面に表示し、再生用URLを作る。
+セッション画面内の音楽ファイル名表示も更新する。
+
+### getSelectedMusicFileName()
+
+現在選択されている音楽ファイル名を返す。
+未選択の場合は `未選択` を返す。
 
 ### playSelectedMusic()
 
 選択済みの音楽ファイルを再生する。
 音楽が未選択の場合はエラーメッセージを表示する。
+
+### stopSelectedMusic()
+
+再生中の音楽を停止し、再生位置を先頭に戻す。
+
+### toggleSessionMusic()
+
+セッション画面の音楽ボタンから、音楽の再生と停止を切り替える。
+
+### adjustSessionReps(amount)
+
+セッション画面の回数入力値を指定数だけ増やす。
+`+1`、`+5`、`+10` ボタンで使う。
+
+### clearSessionReps()
+
+セッション画面の回数入力値を空にする。
 
 ### addHistoryRecord(record, index)
 

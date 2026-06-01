@@ -669,7 +669,8 @@ input[type="radio"] {
 
 .session-header span,
 .session-main span,
-.session-stats span {
+.session-stats span,
+.session-music-panel span {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 800;
@@ -701,7 +702,9 @@ input[type="radio"] {
 }
 
 .session-main,
-.session-stats {
+.session-stats,
+.session-reps-panel,
+.session-music-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
@@ -746,6 +749,89 @@ input[type="radio"] {
 
 .session-stats strong {
   line-height: 1.35;
+}
+
+.session-stats small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.session-reps-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.session-reps-panel.hidden {
+  display: none;
+}
+
+.session-reps-panel label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.session-reps-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.session-reps-input-row input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fffdf9;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.session-reps-input-row span {
+  font-weight: 900;
+}
+
+.session-reps-buttons,
+.session-music-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.session-reps-buttons button,
+.session-music-picker,
+.session-music-actions button {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-align: center;
+  cursor: pointer;
+}
+
+.session-music-panel {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.session-music-panel strong {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.session-music-actions {
+  grid-template-columns: 1fr 92px;
 }
 
 .session-actions {

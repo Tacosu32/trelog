@@ -47,7 +47,13 @@ const sessionRecordType = document.getElementById("session-record-type");
 const sessionTimerDisplay = document.getElementById("session-timer-display");
 const sessionCurrentScore = document.getElementById("session-current-score");
 const sessionTargetScore = document.getElementById("session-target-score");
+const sessionProjectedScore = document.getElementById("session-projected-score");
 const sessionGoalRecommendation = document.getElementById("session-goal-recommendation");
+const sessionRepsPanel = document.getElementById("session-reps-panel");
+const sessionRepsInput = document.getElementById("session-reps-input");
+const sessionRepsClearButton = document.getElementById("session-reps-clear-button");
+const sessionMusicFileName = document.getElementById("session-music-file-name");
+const sessionMusicToggleButton = document.getElementById("session-music-toggle-button");
 const sessionPauseButton = document.getElementById("session-pause-button");
 const sessionSaveButton = document.getElementById("session-save-button");
 const sessionCancelButton = document.getElementById("session-cancel-button");
@@ -139,6 +145,10 @@ function getRecordAmount() {
     return String(getElapsedMinutes());
   }
 
+  if (getRecordType() === "reps" && isSessionOpen()) {
+    return sessionRepsInput.value.trim();
+  }
+
   return recordAmountInput.value.trim();
 }
 
@@ -193,6 +203,7 @@ function updateRecordUnit() {
   }
 
   updateGoalRecommendation();
+  updateSessionRecordControls();
 }
 
 function formatElapsedTime(totalSeconds) {
@@ -202,7 +213,7 @@ function formatElapsedTime(totalSeconds) {
 }
 
 function getElapsedMinutes() {
-  return Math.ceil((elapsedSeconds / 60) * 10) / 10;
+  return Math.round((elapsedSeconds / 60) * 10) / 10;
 }
 
 function updateTimerDisplay() {
@@ -282,17 +293,61 @@ function closeSessionOverlay() {
   sessionOverlay.classList.add("hidden");
 }
 
+function isSessionOpen() {
+  return !sessionOverlay.classList.contains("hidden");
+}
+
 function getRecordTypeText(recordType) {
   return recordType === "reps" ? "回数" : "時間";
 }
 
-function getGoalRecommendationText(exercise, recordType, effort) {
+function calculateSessionAmount(recordType) {
+  if (recordType === "time") {
+    return getElapsedMinutes();
+  }
+
+  return Number(sessionRepsInput.value || 0);
+}
+
+function calculateSessionProjectedScore(exercise, recordType, effort) {
+  const amount = calculateSessionAmount(recordType);
+
+  if (amount <= 0) {
+    return 0;
+  }
+
+  return calculateScore(exercise || "自由種目", recordType, amount, effort);
+}
+
+function calculateRemainingAmountFromScore(remainingScore, exercise, recordType, effort) {
+  const coefficient = getExerciseCoefficient(exercise || "自由種目", recordType);
+  const multiplier = getEffortMultiplier(effort);
+
+  if (remainingScore <= 0) {
+    return 0;
+  }
+
+  if (coefficient <= 0 || multiplier <= 0) {
+    return null;
+  }
+
+  return Math.ceil(remainingScore / coefficient / multiplier);
+}
+
+function getGoalRecommendationText(exercise, recordType, effort, projectedScore) {
   const unit = getRecordUnit(recordType);
   const modeText = getRecordTypeText(recordType);
-  const neededAmount = calculateNeededAmount(exercise || "自由種目", recordType, effort);
+  const savedTodayScore = calculateTodayScore();
+  const expectedTodayScore = savedTodayScore + Number(projectedScore || 0);
+  const remainingScore = Math.max(targetScore - expectedTodayScore, 0);
+  const neededAmount = calculateRemainingAmountFromScore(remainingScore, exercise, recordType, effort);
 
-  if (calculateTodayScore() >= targetScore) {
+  if (savedTodayScore >= targetScore) {
     return "今日の目標は達成済みです";
+  }
+
+  if (expectedTodayScore >= targetScore) {
+    return "この種目を記録すると目標達成です！";
   }
 
   if (exercise === "") {
@@ -306,6 +361,15 @@ function getGoalRecommendationText(exercise, recordType, effort) {
   return `あと${neededAmount}${unit}`;
 }
 
+function updateSessionRecordControls() {
+  const recordType = getRecordType();
+  sessionRepsPanel.classList.toggle("hidden", recordType !== "reps");
+
+  if (recordType === "reps" && sessionRepsInput.value === "" && recordAmountInput.value.trim() !== "") {
+    sessionRepsInput.value = recordAmountInput.value.trim();
+  }
+}
+
 function updateSessionDisplay() {
   if (!sessionOverlay) {
     return;
@@ -316,13 +380,20 @@ function updateSessionDisplay() {
   const effort = getSelectedEffort();
   const stateText = timerState === "paused" ? "一時停止中" : timerState === "running" ? "筋トレ中" : "開始前";
 
+  updateSessionRecordControls();
+  const projectedScore = calculateSessionProjectedScore(exercise, recordType, effort);
+  const expectedScore = calculateTodayScore() + projectedScore;
+
   sessionStateLabel.textContent = stateText;
   sessionTitle.textContent = exercise || "未選択";
   sessionRecordType.textContent = `${getRecordTypeText(recordType)}で記録`;
   sessionTimerDisplay.textContent = formatElapsedTime(elapsedSeconds);
-  sessionCurrentScore.textContent = `${calculateTodayScore()}`;
+  sessionCurrentScore.textContent = `${expectedScore}`;
   sessionTargetScore.textContent = `${targetScore}`;
-  sessionGoalRecommendation.textContent = getGoalRecommendationText(exercise, recordType, effort);
+  sessionProjectedScore.textContent = `見込み +${projectedScore}pt`;
+  sessionGoalRecommendation.textContent = getGoalRecommendationText(exercise, recordType, effort, projectedScore);
+  sessionMusicFileName.textContent = getSelectedMusicFileName();
+  sessionMusicToggleButton.textContent = musicPlayer.paused ? "再生" : "停止";
 }
 
 function startSession() {
@@ -378,18 +449,7 @@ function calculateScore(exercise, recordType, amount, effort) {
 
 function calculateNeededAmount(exercise, recordType, effort) {
   const remainingScore = Math.max(targetScore - calculateTodayScore(), 0);
-  const coefficient = getExerciseCoefficient(exercise, recordType);
-  const multiplier = getEffortMultiplier(effort);
-
-  if (remainingScore <= 0) {
-    return 0;
-  }
-
-  if (coefficient <= 0 || multiplier <= 0) {
-    return null;
-  }
-
-  return Math.ceil(remainingScore / coefficient / multiplier);
+  return calculateRemainingAmountFromScore(remainingScore, exercise, recordType, effort);
 }
 
 function markGoalRewardIfNeeded() {
@@ -418,20 +478,23 @@ function updateGoalRecommendation() {
 
   if (calculateTodayScore() >= targetScore) {
     goalRecommendation.textContent = "今日の目標は達成済みです！";
+    updateSessionDisplay();
     return;
   }
 
   if (exercise === "") {
     goalRecommendation.textContent = "種目を選ぶと、目標到達までの目安を表示します";
+    updateSessionDisplay();
     return;
   }
 
   if (neededAmount === null) {
     goalRecommendation.textContent = `${exercise} / ${modeText}ではスコアが増えません`;
+    updateSessionDisplay();
     return;
   }
 
-  goalRecommendation.textContent = `${getGoalRecommendationText(exercise, recordType, effort)}で今日の目標に到達します`;
+  goalRecommendation.textContent = `${getGoalRecommendationText(exercise, recordType, effort, 0)}で今日の目標に到達します`;
   updateSessionDisplay();
 }
 
@@ -768,6 +831,7 @@ function createTestRecord(dateText) {
 function handleMusicFileChange() {
   const file = musicFileInput.files[0];
   musicFileName.textContent = file ? file.name : "未選択";
+  sessionMusicFileName.textContent = file ? file.name : "未選択";
 
   if (selectedMusicUrl !== "") {
     URL.revokeObjectURL(selectedMusicUrl);
@@ -775,21 +839,59 @@ function handleMusicFileChange() {
 
   selectedMusicUrl = file ? URL.createObjectURL(file) : "";
   musicPlayer.src = selectedMusicUrl;
+  updateSessionDisplay();
+}
+
+function getSelectedMusicFileName() {
+  return musicFileInput.files[0] ? musicFileInput.files[0].name : "未選択";
 }
 
 function playSelectedMusic() {
   if (selectedMusicUrl === "") {
     showMessage("先に音楽ファイルを選んでね。", false);
+    updateTrainerComment("音楽を使うなら、先にファイルを選んでね。なしでもセッションはできるよ。");
     return;
   }
 
   musicPlayer.play()
     .then(() => {
       showMessage("音楽を再生しました。", true);
+      updateSessionDisplay();
     })
     .catch(() => {
       showMessage("音楽を再生できませんでした。別の音楽ファイルを試してね。", false);
     });
+}
+
+function stopSelectedMusic() {
+  musicPlayer.pause();
+  musicPlayer.currentTime = 0;
+  showMessage("音楽を停止しました。", true);
+  updateSessionDisplay();
+}
+
+function toggleSessionMusic() {
+  if (!musicPlayer.paused) {
+    stopSelectedMusic();
+    return;
+  }
+
+  playSelectedMusic();
+}
+
+function adjustSessionReps(amount) {
+  const currentReps = Number(sessionRepsInput.value || 0);
+  sessionRepsInput.value = Math.max(currentReps + amount, 0);
+  recordAmountInput.value = sessionRepsInput.value;
+  updateSessionDisplay();
+  updateGoalRecommendation();
+}
+
+function clearSessionReps() {
+  sessionRepsInput.value = "";
+  recordAmountInput.value = "";
+  updateSessionDisplay();
+  updateGoalRecommendation();
 }
 
 function addHistoryRecord(record, index) {
@@ -856,6 +958,10 @@ function saveTodayRecord() {
   const errorMessage = validateRecord(exercise, amount, recordType);
 
   if (errorMessage !== "") {
+    if (recordType === "reps") {
+      updateTrainerComment("回数を入力してね。1回でも、ちゃんと記録に残せるよ。");
+    }
+
     showMessage(errorMessage, false);
     return false;
   }
@@ -987,12 +1093,26 @@ function initializeApp() {
 }
 
 musicFileInput.addEventListener("change", handleMusicFileChange);
+musicPlayer.addEventListener("play", updateSessionDisplay);
+musicPlayer.addEventListener("pause", updateSessionDisplay);
 playMusicButton.addEventListener("click", playSelectedMusic);
 startWorkoutButton.addEventListener("click", handleWorkoutButtonClick);
 saveRecordButton.addEventListener("click", saveTodayRecord);
 sessionPauseButton.addEventListener("click", handleSessionPauseButtonClick);
 sessionSaveButton.addEventListener("click", handleSessionSaveButtonClick);
 sessionCancelButton.addEventListener("click", cancelSession);
+sessionMusicToggleButton.addEventListener("click", toggleSessionMusic);
+sessionRepsInput.addEventListener("input", () => {
+  recordAmountInput.value = sessionRepsInput.value;
+  updateSessionDisplay();
+  updateGoalRecommendation();
+});
+sessionRepsClearButton.addEventListener("click", clearSessionReps);
+document.querySelectorAll(".session-reps-add-button").forEach((button) => {
+  button.addEventListener("click", () => {
+    adjustSessionReps(Number(button.dataset.repsAdd));
+  });
+});
 exerciseSelect.addEventListener("change", handleExerciseChange);
 customExerciseName.addEventListener("input", updateGoalRecommendation);
 recordAmountInput.addEventListener("input", updateGoalRecommendation);

@@ -53,6 +53,18 @@
 | achievementRate | 達成率 | `45%` |
 | recommendation | おすすめ目安 | `腕立て10回 + ストレッチ5分` |
 
+## SessionProjection
+
+セッション中だけ画面表示に使う見込み値。
+localStorageには保存しない。
+
+| フィールド | 内容 | 例 |
+| --- | --- | --- |
+| sessionAmount | 時間式なら経過分、回数式ならセッション内の回数入力値 | `1.5` / `10` |
+| sessionProjectedScore | セッションを保存した場合に増える見込みスコア | `30` |
+| expectedTodayScore | 今日の保存済みスコア + セッション見込みスコア | `75` |
+| remainingAmount | 見込みスコア反映後、目標到達までに必要な分または回数 | `5` |
+
 ## TimerState
 
 タイマーの状態。
