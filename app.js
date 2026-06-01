@@ -57,6 +57,22 @@ const sessionMusicToggleButton = document.getElementById("session-music-toggle-b
 const sessionPauseButton = document.getElementById("session-pause-button");
 const sessionSaveButton = document.getElementById("session-save-button");
 const sessionCancelButton = document.getElementById("session-cancel-button");
+const resultOverlay = document.getElementById("result-overlay");
+const resultScreen = document.getElementById("result-screen");
+const resultTitle = document.getElementById("result-title");
+const resultTrainerComment = document.getElementById("result-trainer-comment");
+const resultExerciseName = document.getElementById("result-exercise-name");
+const resultRecordValue = document.getElementById("result-record-value");
+const resultEffort = document.getElementById("result-effort");
+const resultScore = document.getElementById("result-score");
+const resultExp = document.getElementById("result-exp");
+const resultTodayScore = document.getElementById("result-today-score");
+const resultTargetScore = document.getElementById("result-target-score");
+const resultGoalStatus = document.getElementById("result-goal-status");
+const resultLevel = document.getElementById("result-level");
+const resultNextLevelExp = document.getElementById("result-next-level-exp");
+const resultBonusList = document.getElementById("result-bonus-list");
+const resultOkButton = document.getElementById("result-ok-button");
 
 const exerciseCoefficients = {
   "腕立て": { time: 10, reps: 2 },
@@ -420,8 +436,11 @@ function handleSessionPauseButtonClick() {
 }
 
 function handleSessionSaveButtonClick() {
-  if (saveTodayRecord()) {
+  const result = saveTodayRecord();
+
+  if (result) {
     closeSessionOverlay();
+    showResultOverlay(result);
   }
 }
 
@@ -870,6 +889,84 @@ function stopSelectedMusic() {
   updateSessionDisplay();
 }
 
+function getResultTrainerComment(result) {
+  if (result.goalAchieved) {
+    return result.goalMarked
+      ? "今日の目標達成！最後までやりきったね。これはかなりいい流れだよ。"
+      : "今日の目標はもう達成済みだよ。さらに積めたの、すごくいいね。";
+  }
+
+  if (result.leveledUp) {
+    return `Lv.${result.afterLevel}にアップ！積み上げがちゃんと形になってるよ。`;
+  }
+
+  return "記録できたよ。今日の積み上げ、ちゃんと残ったね。";
+}
+
+function createResultSummary(record, beforeLevel, levelRewards, goalMarked) {
+  const afterTotalExp = calculateTotalExp();
+  const afterLevel = calculateLevel(afterTotalExp);
+  const levelProgress = calculateLevelProgress(afterTotalExp);
+  const todayScore = calculateTodayScore();
+  const goalAchieved = todayScore >= targetScore;
+
+  return {
+    record,
+    beforeLevel,
+    afterLevel,
+    leveledUp: afterLevel > beforeLevel,
+    levelRewards,
+    goalMarked,
+    goalAchieved,
+    todayScore,
+    totalExp: afterTotalExp,
+    nextLevelRequiredExp: levelProgress.requiredExp
+  };
+}
+
+function showResultOverlay(result) {
+  const record = result.record;
+  const bonusMessages = [];
+
+  resultScreen.classList.toggle("goal-complete", result.goalAchieved);
+  resultTitle.textContent = result.goalAchieved ? "今日の目標達成！" : "ナイス記録！";
+  resultTrainerComment.textContent = getResultTrainerComment(result);
+  resultExerciseName.textContent = record.exerciseName;
+  resultRecordValue.textContent = `${record.value}${record.unit}`;
+  resultEffort.textContent = `${record.intensity}`;
+  resultScore.textContent = `${record.score}`;
+  resultExp.textContent = `${record.exp}`;
+  resultTodayScore.textContent = `${result.todayScore}`;
+  resultTargetScore.textContent = `${targetScore}`;
+  resultGoalStatus.textContent = result.goalAchieved
+    ? result.goalMarked ? "今日の目標達成！" : "達成済み"
+    : "挑戦中";
+  resultLevel.textContent = `Lv.${result.afterLevel}`;
+  resultNextLevelExp.textContent = `次のレベルまで ${result.nextLevelRequiredExp} EXP`;
+
+  if (result.leveledUp) {
+    bonusMessages.push(`Lv.${result.afterLevel} にアップ！`);
+  }
+
+  if (result.levelRewards.length > 0) {
+    bonusMessages.push(`休憩チケットを${result.levelRewards.length}枚獲得！`);
+  }
+
+  resultBonusList.innerHTML = "";
+  bonusMessages.forEach((message) => {
+    const bonusItem = document.createElement("p");
+    bonusItem.textContent = message;
+    resultBonusList.appendChild(bonusItem);
+  });
+
+  resultOverlay.classList.remove("hidden");
+}
+
+function closeResultOverlay() {
+  resultOverlay.classList.add("hidden");
+  resultScreen.classList.remove("goal-complete");
+}
+
 function toggleSessionMusic() {
   if (!musicPlayer.paused) {
     stopSelectedMusic();
@@ -955,6 +1052,7 @@ function saveTodayRecord() {
   const amount = getRecordAmount();
   const effort = getSelectedEffort();
   const savedElapsedSeconds = elapsedSeconds;
+  const beforeLevel = calculateLevel(calculateTotalExp());
   const errorMessage = validateRecord(exercise, amount, recordType);
 
   if (errorMessage !== "") {
@@ -973,6 +1071,7 @@ function saveTodayRecord() {
   saveRecords();
   const goalMarked = markGoalRewardIfNeeded();
   const levelRewards = claimLevelRewardsIfNeeded();
+  const result = createResultSummary(record, beforeLevel, levelRewards, goalMarked);
   renderHistory();
   updateAllStats();
   resetTimer();
@@ -983,7 +1082,7 @@ function saveTodayRecord() {
   }
 
   showMessage("種目ログを保存しました。", true);
-  return true;
+  return result;
 }
 
 function refreshAfterDebugAction(message) {
@@ -1097,10 +1196,17 @@ musicPlayer.addEventListener("play", updateSessionDisplay);
 musicPlayer.addEventListener("pause", updateSessionDisplay);
 playMusicButton.addEventListener("click", playSelectedMusic);
 startWorkoutButton.addEventListener("click", handleWorkoutButtonClick);
-saveRecordButton.addEventListener("click", saveTodayRecord);
+saveRecordButton.addEventListener("click", () => {
+  const result = saveTodayRecord();
+
+  if (result) {
+    showResultOverlay(result);
+  }
+});
 sessionPauseButton.addEventListener("click", handleSessionPauseButtonClick);
 sessionSaveButton.addEventListener("click", handleSessionSaveButtonClick);
 sessionCancelButton.addEventListener("click", cancelSession);
+resultOkButton.addEventListener("click", closeResultOverlay);
 sessionMusicToggleButton.addEventListener("click", toggleSessionMusic);
 sessionRepsInput.addEventListener("input", () => {
   recordAmountInput.value = sessionRepsInput.value;

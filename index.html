@@ -266,6 +266,77 @@
     </div>
   </section>
 
+  <section id="result-overlay" class="result-overlay hidden" aria-labelledby="result-title" aria-modal="true" role="dialog">
+    <div id="result-screen" class="result-screen">
+      <div class="result-celebration" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <header class="result-header">
+        <span>トレーニング完了</span>
+        <h2 id="result-title">ナイス記録！</h2>
+      </header>
+
+      <div class="result-trainer">
+        <div class="trainer-visual result-trainer-visual" aria-hidden="true">
+          <div class="trainer-face">
+            <span class="trainer-eye"></span>
+            <span class="trainer-eye"></span>
+            <span class="trainer-smile"></span>
+          </div>
+        </div>
+        <div class="speech-bubble result-speech">
+          <p id="result-trainer-comment">記録できたよ。今日の積み上げ、ちゃんと残ったね。</p>
+        </div>
+      </div>
+
+      <section class="result-summary" aria-label="記録内容">
+        <div>
+          <span>種目</span>
+          <strong id="result-exercise-name">-</strong>
+        </div>
+        <div>
+          <span>記録</span>
+          <strong id="result-record-value">-</strong>
+        </div>
+        <div>
+          <span>きつさ</span>
+          <strong id="result-effort">-</strong>
+        </div>
+      </section>
+
+      <section class="result-score-grid" aria-label="獲得結果">
+        <div>
+          <span>スコア</span>
+          <strong id="result-score">0</strong>
+        </div>
+        <div>
+          <span>EXP</span>
+          <strong id="result-exp">0</strong>
+        </div>
+      </section>
+
+      <section class="result-progress" aria-label="進捗">
+        <div>
+          <span>今日のスコア</span>
+          <strong><span id="result-today-score">0</span> / <span id="result-target-score">100</span></strong>
+          <small id="result-goal-status">挑戦中</small>
+        </div>
+        <div>
+          <span>レベル</span>
+          <strong id="result-level">Lv.1</strong>
+          <small id="result-next-level-exp">次のレベルまで 100 EXP</small>
+        </div>
+      </section>
+
+      <div id="result-bonus-list" class="result-bonus-list"></div>
+
+      <button id="result-ok-button" class="primary-button" type="button">OK</button>
+    </div>
+  </section>
+
   <script src="app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
