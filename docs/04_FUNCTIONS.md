@@ -41,7 +41,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### getRecordAmount()
 
 分または回の入力値を返す。
-時間式でタイマーが動いていた場合は、タイマーの経過分を記録値として返す。
+時間式でタイマーが動いていた場合は、タイマーの経過秒数を分換算した値を返す。
 回数式でセッションオーバーレイが開いている場合は、セッション内の回数入力値を返す。
 
 ### getSelectedEffort()
@@ -60,6 +60,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### validateRecord(exercise, amount, recordType)
 
 保存前に、種目が選択されているか、分または回が入力されているかを確認する。
+時間式では、入力値ではなく `elapsedSeconds` が1秒以上かを確認する。
 問題がある場合はエラーメッセージを返す。
 
 ### getRecordUnit(recordType)
@@ -74,16 +75,25 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 
 タイマーの経過秒数を `mm:ss` 形式の文字列に変換する。
 
+### secondsToMinutes(seconds)
+
+秒数を分に変換する。
+時間式ログの `value`、スコア計算、見込みスコア計算で使う。
+
+### formatDuration(seconds)
+
+時間式ログの表示用文字列を返す。
+60秒未満は `30秒` のように秒表示、60秒以上は `1.5分` のように小数1桁の分表示にする。
+
 ### getElapsedMinutes()
 
 タイマーの経過秒数を分に変換し、時間式の記録値に使える形で返す。
-小数1桁に丸める。
 
 ### updateTimerDisplay()
 
 タイマー表示を現在の経過秒数で更新する。
-時間式の場合は、経過分を入力欄にも反映する。
-セッションオーバーレイの経過時間表示も同時に更新する。
+時間式の場合は、経過秒数を分換算した値を入力欄にも反映する。
+セッションオーバーレイの経過時間表示は `formatDuration()` で秒または分の表示に変換する。
 
 ### startTimer()
 
@@ -133,7 +143,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### calculateSessionAmount(recordType)
 
 セッション中の入力量を返す。
-時間式では経過分、回数式ではセッション内の回数入力値を返す。
+時間式では経過秒数を分換算した値、回数式ではセッション内の回数入力値を返す。
 
 ### calculateSessionProjectedScore(exercise, recordType, effort)
 
@@ -181,6 +191,11 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### calculateScore(exercise, recordType, amount, effort)
 
 簡易スコア仕様に従って、1つの種目ログのスコアを計算する。
+
+### calculateRecordScore(exercise, recordType, amount, effort, savedElapsedSeconds)
+
+保存時の1件分のスコアを計算する。
+時間式では `savedElapsedSeconds / 60` を分換算してスコア計算に使い、回数式では入力回数を使う。
 
 ### calculateNeededAmount(exercise, recordType, effort)
 
@@ -302,6 +317,7 @@ localStorageの `trelog_state` から状態データを読み込む。
 ### createRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score)
 
 保存形式に合わせた1件分の種目ログオブジェクトを作成する。
+時間式では `elapsedSeconds` を保存し、`value` には互換・表示用の分換算値を入れる。
 
 ### handleMusicFileChange()
 
@@ -362,6 +378,7 @@ localStorageの `trelog_state` から状態データを読み込む。
 ### showResultOverlay(result)
 
 リザルトオーバーレイへ記録内容、獲得スコア、EXP、今日の進捗、達成率、成長、バッジ、報酬、演出クラスを反映して表示する。
+時間式の記録内容は `elapsedSeconds` を優先して、秒または分の表示に変換する。
 演出クラスに応じて、オーバーレイ全体に届く紙吹雪または控えめなキラキラをCSSアニメーションで表示する。
 
 ### closeResultOverlay()
@@ -382,10 +399,26 @@ localStorageの `trelog_state` から状態データを読み込む。
 履歴の種目別集計で使う合計記録値を、単位付きの表示文字列に変換する。
 小数がある場合は小数1桁で表示する。
 
+### getRecordDurationSeconds(record)
+
+時間式ログの表示・集計に使う秒数を返す。
+`elapsedSeconds` があればそれを優先し、古いデータ向けに `value` から秒へ戻す fallback を持つ。
+
+### getRecordDisplayValue(record)
+
+リザルトなど単一ログ表示用の記録値文字列を返す。
+時間式では `formatDuration()`、回数式では `value + unit` を使う。
+
+### getHistoryExerciseAmountText(exerciseSummary)
+
+履歴の種目別集計で表示する合計記録値を返す。
+時間式では合計秒数を `formatDuration()` で表示し、回数式では合計値と単位を表示する。
+
 ### createHistorySummary()
 
 `trelog_records` の保存形式は変更せず、現在の `records` 配列から履歴表示用の集計データを作成する。
 年、月、日、種目単位にまとめ、日ごとの合計スコア、種目数、種目ごとの合計記録値、合計スコア、件数、平均きつさ計算用の値を作る。
+時間式ログは `value` ではなく `elapsedSeconds` を合計する。
 
 ### appendHistoryExercise(parent, exerciseSummary)
 

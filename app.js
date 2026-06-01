@@ -160,7 +160,7 @@ function getRecordType() {
 
 function getRecordAmount() {
   if (getRecordType() === "time" && elapsedSeconds > 0) {
-    return String(getElapsedMinutes());
+    return String(secondsToMinutes(elapsedSeconds));
   }
 
   if (getRecordType() === "reps" && isSessionOpen()) {
@@ -192,6 +192,15 @@ function validateRecord(exercise, amount, recordType) {
   if (exercise === "") {
     updateTrainerComment("種目を選べば大丈夫。今日の一歩を一緒に記録しよう。");
     return "記録する種目を1つ選んでね。";
+  }
+
+  if (recordType === "time") {
+    if (elapsedSeconds < 1) {
+      updateTrainerComment("1秒でも動けたら記録できるよ。タイマーを少し進めてから保存してね。");
+      return "時間式は1秒以上で保存できるよ。";
+    }
+
+    return "";
   }
 
   if (amount === "" || Number(amount) <= 0) {
@@ -230,13 +239,27 @@ function formatElapsedTime(totalSeconds) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function secondsToMinutes(seconds) {
+  return Number((Number(seconds || 0) / 60).toFixed(3));
+}
+
+function formatDuration(seconds) {
+  const durationSeconds = Math.max(Math.round(Number(seconds || 0)), 0);
+
+  if (durationSeconds < 60) {
+    return `${durationSeconds}秒`;
+  }
+
+  return `${secondsToMinutes(durationSeconds).toFixed(1)}分`;
+}
+
 function getElapsedMinutes() {
-  return Math.round((elapsedSeconds / 60) * 10) / 10;
+  return secondsToMinutes(elapsedSeconds);
 }
 
 function updateTimerDisplay() {
   timerDisplay.textContent = formatElapsedTime(elapsedSeconds);
-  sessionTimerDisplay.textContent = formatElapsedTime(elapsedSeconds);
+  sessionTimerDisplay.textContent = formatDuration(elapsedSeconds);
 
   if (getRecordType() === "time") {
     recordAmountInput.value = elapsedSeconds > 0 ? getElapsedMinutes() : "";
@@ -330,7 +353,7 @@ function getRecordTypeText(recordType) {
 
 function calculateSessionAmount(recordType) {
   if (recordType === "time") {
-    return getElapsedMinutes();
+    return secondsToMinutes(elapsedSeconds);
   }
 
   return Number(sessionRepsInput.value || 0);
@@ -414,7 +437,7 @@ function updateSessionDisplay() {
   sessionStateLabel.textContent = stateText;
   sessionTitle.textContent = exercise || "未選択";
   sessionRecordType.textContent = `${getRecordTypeText(recordType)}で記録`;
-  sessionTimerDisplay.textContent = formatElapsedTime(elapsedSeconds);
+  sessionTimerDisplay.textContent = formatDuration(elapsedSeconds);
   sessionCurrentScore.textContent = `${expectedScore}`;
   sessionTargetScore.textContent = `${targetScore}`;
   sessionProjectedScore.textContent = `見込み +${projectedScore}pt`;
@@ -479,6 +502,14 @@ function calculateScore(exercise, recordType, amount, effort) {
   const coefficient = getExerciseCoefficient(exercise, recordType);
   const multiplier = getEffortMultiplier(effort);
   return Math.round(Number(amount) * coefficient * multiplier);
+}
+
+function calculateRecordScore(exercise, recordType, amount, effort, savedElapsedSeconds) {
+  const scoreAmount = recordType === "time"
+    ? secondsToMinutes(savedElapsedSeconds)
+    : amount;
+
+  return calculateScore(exercise, recordType, scoreAmount, effort);
 }
 
 function calculateNeededAmount(exercise, recordType, effort) {
@@ -826,13 +857,17 @@ function saveState() {
 
 function createRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score) {
   const now = new Date();
+  const recordValue = recordType === "time"
+    ? secondsToMinutes(savedElapsedSeconds)
+    : Number(amount);
+
   return {
     id: `record-${now.getTime()}`,
     date: getTodayDateString(),
     exerciseId: getExerciseId() || exercise,
     exerciseName: exercise,
     mode: recordType,
-    value: Number(amount),
+    value: recordValue,
     unit: getRecordUnit(recordType),
     intensity: Number(effort),
     elapsedSeconds: savedElapsedSeconds,
@@ -1014,7 +1049,7 @@ function showResultOverlay(result) {
   resultTitle.textContent = getResultTitle(result);
   resultTrainerComment.textContent = getResultTrainerComment(result);
   resultExerciseName.textContent = record.exerciseName;
-  resultRecordValue.textContent = `${record.value}${record.unit}`;
+  resultRecordValue.textContent = getRecordDisplayValue(record);
   resultEffort.textContent = `${record.intensity}`;
   resultScore.textContent = `${record.score}`;
   resultExp.textContent = `${record.exp}`;
@@ -1090,6 +1125,30 @@ function formatHistoryAmount(amount, unit) {
   return `${Number.isInteger(roundedAmount) ? roundedAmount : roundedAmount.toFixed(1)}${unit}`;
 }
 
+function getRecordDurationSeconds(record) {
+  if (Number(record.elapsedSeconds || 0) > 0) {
+    return Number(record.elapsedSeconds);
+  }
+
+  return Number(record.value || 0) * 60;
+}
+
+function getRecordDisplayValue(record) {
+  if (record.mode === "time") {
+    return formatDuration(getRecordDurationSeconds(record));
+  }
+
+  return `${record.value}${record.unit}`;
+}
+
+function getHistoryExerciseAmountText(exerciseSummary) {
+  if (exerciseSummary.mode === "time") {
+    return formatDuration(exerciseSummary.totalSeconds);
+  }
+
+  return formatHistoryAmount(exerciseSummary.totalValue, exerciseSummary.unit);
+}
+
 function createHistorySummary() {
   const summary = {};
 
@@ -1126,8 +1185,10 @@ function createHistorySummary() {
     if (!daySummary.exercises[exerciseKey]) {
       daySummary.exercises[exerciseKey] = {
         name: exerciseName,
+        mode: record.mode || "time",
         unit,
         totalValue: 0,
+        totalSeconds: 0,
         totalScore: 0,
         count: 0,
         totalIntensity: 0
@@ -1135,7 +1196,12 @@ function createHistorySummary() {
     }
 
     const exerciseSummary = daySummary.exercises[exerciseKey];
-    exerciseSummary.totalValue += Number(record.value || 0);
+    if (record.mode === "time") {
+      exerciseSummary.totalSeconds += getRecordDurationSeconds(record);
+      exerciseSummary.totalValue = secondsToMinutes(exerciseSummary.totalSeconds);
+    } else {
+      exerciseSummary.totalValue += Number(record.value || 0);
+    }
     exerciseSummary.totalScore += Number(record.score || 0);
     exerciseSummary.count += 1;
     exerciseSummary.totalIntensity += Number(record.intensity || 0);
@@ -1151,7 +1217,7 @@ function appendHistoryExercise(parent, exerciseSummary) {
     : exerciseSummary.totalIntensity / exerciseSummary.count;
 
   exerciseItem.className = "history-exercise-item";
-  exerciseItem.textContent = `${exerciseSummary.name}　合計${formatHistoryAmount(exerciseSummary.totalValue, exerciseSummary.unit)}　${exerciseSummary.totalScore}pt　${exerciseSummary.count}件　平均きつさ${averageIntensity.toFixed(1)}`;
+  exerciseItem.textContent = `${exerciseSummary.name}　合計${getHistoryExerciseAmountText(exerciseSummary)}　${exerciseSummary.totalScore}pt　${exerciseSummary.count}件　平均きつさ${averageIntensity.toFixed(1)}`;
   parent.appendChild(exerciseItem);
 }
 
@@ -1269,7 +1335,7 @@ function saveTodayRecord() {
     return false;
   }
 
-  const score = calculateScore(exercise, recordType, amount, effort);
+  const score = calculateRecordScore(exercise, recordType, amount, effort, savedElapsedSeconds);
   const record = createRecord(exercise, recordType, amount, effort, savedElapsedSeconds, score);
 
   records.push(record);
