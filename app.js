@@ -8,6 +8,7 @@ const musicFileName = document.getElementById("music-file-name");
 const musicPlayer = document.getElementById("music-player");
 const playMusicButton = document.getElementById("play-music-button");
 const homeStartRecordButton = document.getElementById("home-start-record-button");
+const homeTrainerImage = document.getElementById("home-trainer-image");
 const startWorkoutButton = document.getElementById("start-workout-button");
 const saveRecordButton = document.getElementById("save-record-button");
 const trainerComment = document.getElementById("trainer-comment");
@@ -55,6 +56,7 @@ const resetScoreConfigButton = document.getElementById("reset-score-config-butto
 const debugPanel = document.getElementById("debug-panel");
 const debugStorageOutput = document.getElementById("debug-storage-output");
 const sessionOverlay = document.getElementById("session-overlay");
+const sessionTrainerImage = document.getElementById("session-trainer-image");
 const sessionStateLabel = document.getElementById("session-state-label");
 const sessionTrainerComment = document.getElementById("session-trainer-comment");
 const sessionTitle = document.getElementById("session-title");
@@ -74,6 +76,7 @@ const sessionSaveButton = document.getElementById("session-save-button");
 const sessionCancelButton = document.getElementById("session-cancel-button");
 const resultOverlay = document.getElementById("result-overlay");
 const resultScreen = document.getElementById("result-screen");
+const resultTrainerImage = document.getElementById("result-trainer-image");
 const resultTitle = document.getElementById("result-title");
 const resultTrainerComment = document.getElementById("result-trainer-comment");
 const resultExerciseName = document.getElementById("result-exercise-name");
@@ -197,6 +200,13 @@ let selectedMusicUrl = "";
 let timerState = "idle";
 let elapsedSeconds = 0;
 let timerId = null;
+const trainerImagePaths = {
+  localPrivate: "assets/trainer/local/trainer_private.png",
+  default: "assets/trainer/public/trainer_default.png",
+  cheer: "assets/trainer/public/trainer_cheer.png",
+  result: "assets/trainer/public/trainer_result.png",
+  rest: "assets/trainer/public/trainer_rest.png"
+};
 
 function switchView(viewName) {
   appViews.forEach((view) => {
@@ -215,6 +225,73 @@ function switchView(viewName) {
   });
 
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function isLocalDevelopment() {
+  return ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+}
+
+function getTrainerImageCandidates(context) {
+  const publicPath = trainerImagePaths[context] || trainerImagePaths.default;
+  const publicCandidates = publicPath === trainerImagePaths.default
+    ? [trainerImagePaths.default]
+    : [publicPath, trainerImagePaths.default];
+
+  if (isLocalDevelopment()) {
+    return [trainerImagePaths.localPrivate, ...publicCandidates];
+  }
+
+  return publicCandidates;
+}
+
+function setTrainerImage(imageElement, context) {
+  if (!imageElement) {
+    return;
+  }
+
+  if (imageElement.dataset.trainerContext === context) {
+    return;
+  }
+
+  imageElement.dataset.trainerContext = context;
+  const visual = imageElement.closest(".trainer-visual");
+  const candidates = getTrainerImageCandidates(context);
+  let candidateIndex = 0;
+
+  function showFallback() {
+    imageElement.removeAttribute("src");
+    imageElement.classList.add("hidden");
+    visual.classList.remove("has-image");
+  }
+
+  function tryCandidate() {
+    const nextPath = candidates[candidateIndex];
+
+    if (!nextPath) {
+      showFallback();
+      return;
+    }
+
+    const testImage = new Image();
+    testImage.onload = () => {
+      imageElement.src = nextPath;
+      imageElement.classList.remove("hidden");
+      visual.classList.add("has-image");
+    };
+    testImage.onerror = () => {
+      candidateIndex += 1;
+      tryCandidate();
+    };
+    testImage.src = nextPath;
+  }
+
+  tryCandidate();
+}
+
+function updateTrainerImages(contexts = {}) {
+  setTrainerImage(homeTrainerImage, contexts.home || "default");
+  setTrainerImage(sessionTrainerImage, contexts.session || "cheer");
+  setTrainerImage(resultTrainerImage, contexts.result || "result");
 }
 
 function cloneScoringConfig(config) {
@@ -682,8 +759,10 @@ function updateSessionDisplay() {
   const recordType = getRecordType();
   const effort = getSelectedEffort();
   const stateText = timerState === "paused" ? "一時停止中" : timerState === "running" ? "筋トレ中" : "開始前";
+  const trainerContext = timerState === "paused" ? "rest" : "cheer";
 
   updateSessionRecordControls();
+  setTrainerImage(sessionTrainerImage, trainerContext);
   const projectedScore = calculateSessionProjectedScore(exercise, recordType, effort);
   const expectedScore = calculateTodayScore() + projectedScore;
 
@@ -1481,6 +1560,7 @@ function showResultOverlay(result) {
 
   resultScreen.classList.remove("goal-complete", "level-up", "ticket-reward", "sparkle");
   resultScreen.classList.add(animationClass);
+  setTrainerImage(resultTrainerImage, "result");
   resultTitle.textContent = getResultTitle(result);
   resultTrainerComment.textContent = getResultTrainerComment(result);
   resultExerciseName.textContent = record.exerciseName;
@@ -1519,6 +1599,7 @@ function showResultOverlay(result) {
 function closeResultOverlay() {
   resultOverlay.classList.add("hidden");
   resultScreen.classList.remove("goal-complete", "level-up", "ticket-reward", "sparkle");
+  setTrainerImage(homeTrainerImage, "default");
 }
 
 function toggleSessionMusic() {
@@ -1887,6 +1968,7 @@ function initializeApp() {
   appState = loadState();
   saveState();
   todayLabel.textContent = getTodayText();
+  updateTrainerImages({ home: "default", session: "cheer", result: "result" });
   setupDebugPanel();
   renderScoringConfigPanel();
   updateEvaluationProfileDisplay();

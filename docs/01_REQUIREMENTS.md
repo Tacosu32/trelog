@@ -130,6 +130,12 @@
 ### 8. トレーナー
 
 - トレーナー画像を表示する
+- 公開用トレーナー画像は `assets/trainer/public/` に置く
+- 個人用、権利確認前、公開不適切な画像は `assets/trainer/local/` または `assets/private/` に置き、Git管理しない
+- ホーム通常時は `trainer_default.png`、セッション中は `trainer_cheer.png`、リザルトや祝福時は `trainer_result.png`、一時停止や休憩時は `trainer_rest.png` を使う
+- 画像が存在しない場合は、状況別public画像、`trainer_default.png`、既存の仮トレーナー表示の順でフォールバックする
+- localhostで開発中のみ、`assets/trainer/local/trainer_private.png` が存在すれば優先利用できる
+- GitHub Pagesなど公開環境では `assets/trainer/local/` を参照しない
 - 状況に応じた定型コメントを表示する
 - α版では会話機能は実装しない
 

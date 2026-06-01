@@ -1,0 +1,6 @@
+assets/trainer/local/
+assets/private/
+*.psd
+*.clip
+Thumbs.db
+.DS_Store

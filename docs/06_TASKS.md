@@ -29,3 +29,5 @@
 - 種目ごとの個別係数調整を検討する
 - 自作種目登録時の負荷判定を検討する
 - スコア調整パネルで検証した設定を `DEFAULT_SCORING_CONFIG` に正式反映する運用を整える
+- 公開用トレーナー画像 `trainer_default.png`、`trainer_cheer.png`、`trainer_result.png`、`trainer_rest.png` を正式制作する
+- アプリ内アップロード画像をIndexedDBへ保存し、GitHubに個人素材を含めない運用を検討する

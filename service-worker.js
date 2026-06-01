@@ -1,4 +1,4 @@
-const CACHE_NAME = "trelog-alpha-v12";
+const CACHE_NAME = "trelog-alpha-v13";
 
 const CORE_ASSETS = [
   "./index.html",
@@ -8,7 +8,11 @@ const CORE_ASSETS = [
 ];
 
 const OPTIONAL_ASSETS = [
-  "./assets/icons/icon.svg"
+  "./assets/icons/icon.svg",
+  "./assets/trainer/public/trainer_default.png",
+  "./assets/trainer/public/trainer_cheer.png",
+  "./assets/trainer/public/trainer_result.png",
+  "./assets/trainer/public/trainer_rest.png"
 ];
 
 self.addEventListener("install", (event) => {

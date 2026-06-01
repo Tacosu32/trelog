@@ -141,3 +141,11 @@
 - 開発中はlocalStorageの `trelog_dev_scoring_config` で一時上書きし、存在する場合はデフォルトより優先してスコア計算に使う。
 - 良い設定が見つかったら、スコア調整パネルのJSONをCodexに渡し、`DEFAULT_SCORING_CONFIG` に正式反映してGit管理する。
 - 開発者用設定は過去ログを再計算せず、今後保存するログと目標到達目安、セッション見込みに反映する。
+
+## 2026-06-01 トレーナー画像の公開/ローカル分離
+
+- Publicリポジトリには公開可能な素材だけを置く。
+- 個人用、権利確認前、公開不適切な素材は `assets/trainer/local/` または `assets/private/` に置き、Git管理しない。
+- 公開環境では `assets/trainer/public/` の画像のみを使用する。
+- localhostでは `assets/trainer/local/trainer_private.png` が存在する場合だけ優先利用できる。
+- 将来的にはアプリ内アップロード画像をIndexedDBに保存し、GitHubに素材を含めない形にする。

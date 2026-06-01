@@ -33,6 +33,25 @@ localStorageの `trelog_dev_scoring_config` を読み込み、有効な場合は
 
 現在有効なスコア設定から、今日の目標スコアを返す。
 
+### isLocalDevelopment()
+
+現在の実行環境がlocalhostまたはローカルファイルかどうかを返す。
+ローカル個人用トレーナー画像を参照してよいか判断するために使う。
+
+### getTrainerImageCandidates(context)
+
+トレーナー表示状態に応じて、読み込み候補の画像パスを優先順で返す。
+localhostでは `assets/trainer/local/trainer_private.png` を先頭にし、公開環境ではpublic画像だけを返す。
+
+### setTrainerImage(imageElement, context)
+
+指定された画像要素に、状況に合うトレーナー画像を設定する。
+状況別public画像、default画像、既存CSS仮表示の順でフォールバックする。
+
+### updateTrainerImages(contexts)
+
+ホーム、セッション、リザルトのトレーナー画像をまとめて初期化または更新する。
+
 ### getSelectedExercise()
 
 保存対象として選択された1つの種目を返す。

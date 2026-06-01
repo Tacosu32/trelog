@@ -173,12 +173,29 @@ h2 {
 }
 
 .trainer-visual {
+  position: relative;
   height: 122px;
   display: grid;
   place-items: end center;
   border-radius: 8px;
   background: linear-gradient(160deg, var(--soft-green), #fff1d6);
   overflow: hidden;
+}
+
+.trainer-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trainer-image.hidden {
+  display: none;
+}
+
+.trainer-visual.has-image .trainer-face {
+  display: none;
 }
 
 .trainer-face {
