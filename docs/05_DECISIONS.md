@@ -165,3 +165,11 @@
 - タブを閉じてもlocalStorage/IndexedDBは通常残るが、ブラウザのサイトデータ削除やDevToolsのClear site dataでは消える。
 - 記録や設定を守るため、`trelog_records`、`trelog_state`、`trelog_dev_scoring_config` をJSONでバックアップ/復元できるようにする。
 - 今回のJSONバックアップにはカスタム画像本体は含めず、メタ情報のみ含める。
+
+## 2026-06-01 カスタム画像4差分
+
+- カスタムトレーナー画像は通常・応援・祝福・休憩の4差分で扱う。
+- カスタム画像はIndexedDBに保存し、GitHubには上げない。
+- 旧1枚設定の `customTrainerImage` は `custom_default` として互換利用する。
+- 応援・祝福・休憩のカスタム画像がない場合は `custom_default` をフォールバックにする。
+- 画像本体を含むバックアップJSONはサイズが大きくなるが、サイトデータ削除時の復元に有効なためversion 2でData URLを含める。

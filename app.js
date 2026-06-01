@@ -4,7 +4,13 @@ const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
 const userAssetsDbName = "trelog_user_assets";
 const trainerImagesStoreName = "trainer_images";
-const customTrainerImageKey = "customTrainerImage";
+const legacyCustomTrainerImageKey = "customTrainerImage";
+const customTrainerSlots = {
+  custom_default: { label: "通常画像", context: "default" },
+  custom_cheer: { label: "応援画像", context: "cheer" },
+  custom_result: { label: "祝福画像", context: "result" },
+  custom_rest: { label: "休憩画像", context: "rest" }
+};
 const maxCustomTrainerImageSize = 5 * 1024 * 1024;
 const allowedTrainerImageTypes = ["image/png", "image/jpeg", "image/webp"];
 
@@ -59,14 +65,9 @@ const scorePreviewResult = document.getElementById("score-preview-result");
 const scoreConfigJson = document.getElementById("score-config-json");
 const copyScoreConfigButton = document.getElementById("copy-score-config-button");
 const resetScoreConfigButton = document.getElementById("reset-score-config-button");
-const customTrainerPreviewImage = document.getElementById("custom-trainer-preview-image");
 const customTrainerStatus = document.getElementById("custom-trainer-status");
-const customTrainerFileName = document.getElementById("custom-trainer-file-name");
-const customTrainerMeta = document.getElementById("custom-trainer-meta");
-const customTrainerFileInput = document.getElementById("custom-trainer-file");
-const customTrainerSelectedName = document.getElementById("custom-trainer-selected-name");
-const applyCustomTrainerButton = document.getElementById("apply-custom-trainer-button");
-const deleteCustomTrainerButton = document.getElementById("delete-custom-trainer-button");
+const customTrainerSlotElements = document.querySelectorAll("[data-trainer-slot]");
+const deleteAllCustomTrainersButton = document.getElementById("delete-all-custom-trainers-button");
 const exportBackupButton = document.getElementById("export-backup-button");
 const importBackupFile = document.getElementById("import-backup-file");
 const backupStatus = document.getElementById("backup-status");
@@ -231,9 +232,8 @@ let timerState = "idle";
 let elapsedSeconds = 0;
 let timerId = null;
 let sessionLineOverride = "";
-let customTrainerImageUrl = "";
-let customTrainerImageMeta = null;
-let pendingCustomTrainerFile = null;
+let customTrainerImages = {};
+let pendingCustomTrainerFiles = {};
 const trainerImagePaths = {
   localPrivate: "assets/trainer/local/trainer_private.png",
   default: "assets/trainer/public/trainer_default.png",
@@ -285,11 +285,11 @@ function openUserAssetsDb() {
   });
 }
 
-function readCustomTrainerImage() {
+function readTrainerImageRecord(key) {
   return openUserAssetsDb().then((db) => new Promise((resolve, reject) => {
     const transaction = db.transaction(trainerImagesStoreName, "readonly");
     const store = transaction.objectStore(trainerImagesStoreName);
-    const request = store.get(customTrainerImageKey);
+    const request = store.get(key);
 
     request.onsuccess = () => resolve(request.result || null);
     request.onerror = () => reject(request.error);
@@ -297,18 +297,18 @@ function readCustomTrainerImage() {
   }));
 }
 
-function writeCustomTrainerImage(file) {
+function writeTrainerImageRecord(key, file, savedAt = new Date().toISOString()) {
   const payload = {
     blob: file,
     fileName: file.name,
     mimeType: file.type,
-    savedAt: new Date().toISOString()
+    savedAt
   };
 
   return openUserAssetsDb().then((db) => new Promise((resolve, reject) => {
     const transaction = db.transaction(trainerImagesStoreName, "readwrite");
     const store = transaction.objectStore(trainerImagesStoreName);
-    const request = store.put(payload, customTrainerImageKey);
+    const request = store.put(payload, key);
 
     request.onsuccess = () => resolve(payload);
     request.onerror = () => reject(request.error);
@@ -316,11 +316,11 @@ function writeCustomTrainerImage(file) {
   }));
 }
 
-function deleteCustomTrainerImage() {
+function deleteTrainerImageRecord(key) {
   return openUserAssetsDb().then((db) => new Promise((resolve, reject) => {
     const transaction = db.transaction(trainerImagesStoreName, "readwrite");
     const store = transaction.objectStore(trainerImagesStoreName);
-    const request = store.delete(customTrainerImageKey);
+    const request = store.delete(key);
 
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
@@ -328,37 +328,61 @@ function deleteCustomTrainerImage() {
   }));
 }
 
-function clearCustomTrainerObjectUrl() {
-  if (customTrainerImageUrl) {
-    URL.revokeObjectURL(customTrainerImageUrl);
+function clearCustomTrainerObjectUrl(slotKey) {
+  if (customTrainerImages[slotKey]?.url) {
+    URL.revokeObjectURL(customTrainerImages[slotKey].url);
   }
 
-  customTrainerImageUrl = "";
+  delete customTrainerImages[slotKey];
 }
 
-function setCustomTrainerImageFromRecord(record) {
-  clearCustomTrainerObjectUrl();
+function clearAllCustomTrainerObjectUrls() {
+  Object.keys(customTrainerImages).forEach(clearCustomTrainerObjectUrl);
+}
+
+function setCustomTrainerImageFromRecord(slotKey, record) {
+  clearCustomTrainerObjectUrl(slotKey);
 
   if (!record || !(record.blob instanceof Blob)) {
-    customTrainerImageMeta = null;
     return;
   }
 
-  customTrainerImageUrl = URL.createObjectURL(record.blob);
-  customTrainerImageMeta = {
-    fileName: record.fileName || "custom-trainer",
-    mimeType: record.mimeType || record.blob.type || "",
-    savedAt: record.savedAt || null
+  customTrainerImages[slotKey] = {
+    url: URL.createObjectURL(record.blob),
+    blob: record.blob,
+    meta: {
+      fileName: record.fileName || "custom-trainer",
+      mimeType: record.mimeType || record.blob.type || "",
+      savedAt: record.savedAt || null
+    }
   };
 }
 
 async function loadCustomTrainerImage() {
+  clearAllCustomTrainerObjectUrls();
+  customTrainerImages = {};
+
   try {
-    const record = await readCustomTrainerImage();
-    setCustomTrainerImageFromRecord(record);
+    const defaultRecord = await readTrainerImageRecord("custom_default");
+    const legacyRecord = defaultRecord || await readTrainerImageRecord(legacyCustomTrainerImageKey);
+
+    if (legacyRecord && !defaultRecord) {
+      const migratedFile = new File(
+        [legacyRecord.blob],
+        legacyRecord.fileName || "custom-trainer",
+        { type: legacyRecord.mimeType || legacyRecord.blob.type || "image/png" }
+      );
+      await writeTrainerImageRecord("custom_default", migratedFile, legacyRecord.savedAt || new Date().toISOString());
+    }
+
+    setCustomTrainerImageFromRecord("custom_default", legacyRecord);
+
+    await Promise.all(["custom_cheer", "custom_result", "custom_rest"].map(async (slotKey) => {
+      const record = await readTrainerImageRecord(slotKey);
+      setCustomTrainerImageFromRecord(slotKey, record);
+    }));
   } catch (error) {
-    clearCustomTrainerObjectUrl();
-    customTrainerImageMeta = null;
+    clearAllCustomTrainerObjectUrls();
   }
 
   renderTrainerImageSettings();
@@ -385,32 +409,59 @@ function validateCustomTrainerImageFile(file) {
   return "";
 }
 
+function getTrainerImagesMetaPayload() {
+  return Object.keys(customTrainerSlots).reduce((payload, slotKey) => {
+    const slotImage = customTrainerImages[slotKey];
+    payload[slotKey] = {
+      hasImage: Boolean(slotImage),
+      fileName: slotImage?.meta.fileName || null,
+      mimeType: slotImage?.meta.mimeType || null,
+      savedAt: slotImage?.meta.savedAt || null,
+      dataUrl: null
+    };
+    return payload;
+  }, {});
+}
+
 function getCustomTrainerImageMetaForBackup() {
-  return {
-    hasCustomImage: Boolean(customTrainerImageMeta),
-    fileName: customTrainerImageMeta?.fileName || null,
-    mimeType: customTrainerImageMeta?.mimeType || null,
-    savedAt: customTrainerImageMeta?.savedAt || null
-  };
+  return getTrainerImagesMetaPayload();
 }
 
 function renderTrainerImageSettings() {
-  setTrainerImage(customTrainerPreviewImage, "default");
+  const activeCount = Object.keys(customTrainerImages).length;
 
   if (customTrainerStatus) {
-    customTrainerStatus.textContent = customTrainerImageMeta ? "カスタム画像" : "デフォルト";
-    customTrainerStatus.classList.toggle("active", Boolean(customTrainerImageMeta));
+    customTrainerStatus.textContent = activeCount > 0 ? `${activeCount}差分設定中` : "デフォルト";
+    customTrainerStatus.classList.toggle("active", activeCount > 0);
   }
 
-  if (customTrainerFileName) {
-    customTrainerFileName.textContent = customTrainerImageMeta?.fileName || "未設定";
-  }
+  customTrainerSlotElements.forEach((slotElement) => {
+    const slotKey = slotElement.dataset.trainerSlot;
+    const slotImage = customTrainerImages[slotKey];
+    const status = slotElement.querySelector("[data-trainer-slot-status]");
+    const fileName = slotElement.querySelector("[data-trainer-slot-file-name]");
+    const meta = slotElement.querySelector("[data-trainer-slot-meta]");
+    const preview = slotElement.querySelector("[data-trainer-slot-preview]");
 
-  if (customTrainerMeta) {
-    customTrainerMeta.textContent = customTrainerImageMeta
-      ? `${customTrainerImageMeta.mimeType || "image"} / 保存日時 ${customTrainerImageMeta.savedAt || "-"}`
-      : "png / jpg / jpeg / webp、5MBまで対応します。";
-  }
+    if (status) {
+      status.textContent = slotImage ? "カスタム画像" : "デフォルト";
+      status.classList.toggle("active", Boolean(slotImage));
+    }
+
+    if (fileName) {
+      fileName.textContent = slotImage?.meta.fileName || "未設定";
+    }
+
+    if (meta) {
+      meta.textContent = slotImage
+        ? `${slotImage.meta.mimeType || "image"} / 保存日時 ${slotImage.meta.savedAt || "-"}`
+        : `${customTrainerSlots[slotKey]?.label || "画像"}を設定できます。png / jpg / jpeg / webp、5MBまで。`;
+    }
+
+    if (preview) {
+      setTrainerImage(preview, customTrainerSlots[slotKey]?.context || "default");
+    }
+  });
 }
 
 function getTrainerImageCandidates(context) {
@@ -418,15 +469,22 @@ function getTrainerImageCandidates(context) {
   const publicCandidates = publicPath === trainerImagePaths.default
     ? [trainerImagePaths.default]
     : [publicPath, trainerImagePaths.default];
-  const localCandidates = isLocalDevelopment()
-    ? [trainerImagePaths.localPrivate, ...publicCandidates]
-    : publicCandidates;
+  const slotKeyByContext = {
+    default: "custom_default",
+    cheer: "custom_cheer",
+    result: "custom_result",
+    rest: "custom_rest"
+  };
+  const customCandidates = [
+    customTrainerImages[slotKeyByContext[context]]?.url,
+    context === "default" ? null : customTrainerImages.custom_default?.url
+  ].filter(Boolean);
 
-  if (customTrainerImageUrl) {
-    return [customTrainerImageUrl, ...localCandidates];
+  if (context === "default" && isLocalDevelopment()) {
+    return [...customCandidates, trainerImagePaths.localPrivate, ...publicCandidates];
   }
 
-  return localCandidates;
+  return [...customCandidates, ...publicCandidates];
 }
 
 function setTrainerImage(imageElement, context) {
@@ -434,7 +492,9 @@ function setTrainerImage(imageElement, context) {
     return;
   }
 
-  const customImageKey = customTrainerImageUrl || "";
+  const customImageKey = Object.values(customTrainerImages)
+    .map((slotImage) => slotImage.url)
+    .join("|");
 
   if (
     imageElement.dataset.trainerContext === context
@@ -1433,6 +1493,7 @@ function consumeRestTicketsForMissedDays() {
     appState.restDates = Array.from(new Set(appState.restDates)).sort();
     saveState();
     updateTrainerComment(`未記録日を${usedCount}日分、休憩チケットで守ったよ。続いてる流れ、大事にしよう。`);
+    setTrainerImage(homeTrainerImage, "rest");
   }
 
   return usedCount;
@@ -2185,13 +2246,15 @@ async function clearAllData() {
   localStorage.removeItem(stateStorageKey);
   localStorage.removeItem(devScoringConfigStorageKey);
   try {
-    await deleteCustomTrainerImage();
+    await Promise.all([
+      ...Object.keys(customTrainerSlots).map(deleteTrainerImageRecord),
+      deleteTrainerImageRecord(legacyCustomTrainerImageKey)
+    ]);
   } catch (error) {
     // IndexedDB may be unavailable; localStorage cleanup should still complete.
   }
-  clearCustomTrainerObjectUrl();
-  customTrainerImageMeta = null;
-  pendingCustomTrainerFile = null;
+  clearAllCustomTrainerObjectUrls();
+  pendingCustomTrainerFiles = {};
   saveState();
   scoringConfig = cloneScoringConfig(DEFAULT_SCORING_CONFIG);
   isDevScoringConfigActive = false;
@@ -2235,30 +2298,37 @@ function updateDebugStorageOutput() {
     trelog_records: JSON.parse(localStorage.getItem(storageKey) || "[]"),
     trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null"),
     trelog_dev_scoring_config: JSON.parse(localStorage.getItem(devScoringConfigStorageKey) || "null"),
-    trainerImageMeta: getCustomTrainerImageMetaForBackup()
+    trainerImages: getCustomTrainerImageMetaForBackup()
   }, null, 2);
 }
 
-function handleCustomTrainerFileChange() {
-  const file = customTrainerFileInput.files[0] || null;
+function handleCustomTrainerFileChange(slotElement) {
+  const slotKey = slotElement.dataset.trainerSlot;
+  const fileInput = slotElement.querySelector("[data-trainer-slot-input]");
+  const selectedName = slotElement.querySelector("[data-trainer-slot-selected-name]");
+  const file = fileInput.files[0] || null;
   const errorMessage = validateCustomTrainerImageFile(file);
 
   if (errorMessage) {
-    pendingCustomTrainerFile = null;
-    customTrainerSelectedName.textContent = file ? file.name : "未選択";
+    delete pendingCustomTrainerFiles[slotKey];
+    selectedName.textContent = file ? file.name : "未選択";
     if (file) {
       showMessage(errorMessage, false);
     }
     return;
   }
 
-  pendingCustomTrainerFile = file;
-  customTrainerSelectedName.textContent = file.name;
-  showMessage("トレーナー画像を選択しました。適用を押すと保存します。", true);
+  pendingCustomTrainerFiles[slotKey] = file;
+  selectedName.textContent = file.name;
+  showMessage(`${customTrainerSlots[slotKey].label}を選択しました。適用を押すと保存します。`, true);
 }
 
-async function handleApplyCustomTrainerImage() {
-  const errorMessage = validateCustomTrainerImageFile(pendingCustomTrainerFile);
+async function handleApplyCustomTrainerImage(slotElement) {
+  const slotKey = slotElement.dataset.trainerSlot;
+  const fileInput = slotElement.querySelector("[data-trainer-slot-input]");
+  const selectedName = slotElement.querySelector("[data-trainer-slot-selected-name]");
+  const file = pendingCustomTrainerFiles[slotKey];
+  const errorMessage = validateCustomTrainerImageFile(file);
 
   if (errorMessage) {
     showMessage(errorMessage, false);
@@ -2266,38 +2336,63 @@ async function handleApplyCustomTrainerImage() {
   }
 
   try {
-    const record = await writeCustomTrainerImage(pendingCustomTrainerFile);
-    setCustomTrainerImageFromRecord(record);
-    pendingCustomTrainerFile = null;
-    customTrainerFileInput.value = "";
-    customTrainerSelectedName.textContent = "未選択";
+    const record = await writeTrainerImageRecord(slotKey, file);
+    setCustomTrainerImageFromRecord(slotKey, record);
+    delete pendingCustomTrainerFiles[slotKey];
+    fileInput.value = "";
+    selectedName.textContent = "未選択";
     renderTrainerImageSettings();
     updateTrainerImages({
       home: "default",
       session: timerState === "paused" ? "rest" : "cheer",
       result: "result"
     });
-    showMessage("カスタムトレーナー画像を保存しました。", true);
+    showMessage(`${customTrainerSlots[slotKey].label}を保存しました。`, true);
   } catch (error) {
     showMessage("画像の保存に失敗しました。ブラウザの保存領域を確認してください。", false);
   }
 }
 
-async function handleDeleteCustomTrainerImage() {
+async function handleDeleteCustomTrainerImage(slotElement) {
+  const slotKey = slotElement.dataset.trainerSlot;
+  const fileInput = slotElement.querySelector("[data-trainer-slot-input]");
+  const selectedName = slotElement.querySelector("[data-trainer-slot-selected-name]");
+
   try {
-    await deleteCustomTrainerImage();
-    clearCustomTrainerObjectUrl();
-    customTrainerImageMeta = null;
-    pendingCustomTrainerFile = null;
-    customTrainerFileInput.value = "";
-    customTrainerSelectedName.textContent = "未選択";
+    await deleteTrainerImageRecord(slotKey);
+    clearCustomTrainerObjectUrl(slotKey);
+    delete pendingCustomTrainerFiles[slotKey];
+    fileInput.value = "";
+    selectedName.textContent = "未選択";
     renderTrainerImageSettings();
     updateTrainerImages({
       home: "default",
       session: timerState === "paused" ? "rest" : "cheer",
       result: "result"
     });
-    showMessage("カスタム画像を削除し、デフォルト表示に戻しました。", true);
+    showMessage(`${customTrainerSlots[slotKey].label}をデフォルトに戻しました。`, true);
+  } catch (error) {
+    showMessage("カスタム画像の削除に失敗しました。", false);
+  }
+}
+
+async function handleDeleteAllCustomTrainerImages() {
+  try {
+    await Promise.all([
+      ...Object.keys(customTrainerSlots).map(deleteTrainerImageRecord),
+      deleteTrainerImageRecord(legacyCustomTrainerImageKey)
+    ]);
+    clearAllCustomTrainerObjectUrls();
+    pendingCustomTrainerFiles = {};
+    customTrainerSlotElements.forEach((slotElement) => {
+      const fileInput = slotElement.querySelector("[data-trainer-slot-input]");
+      const selectedName = slotElement.querySelector("[data-trainer-slot-selected-name]");
+      fileInput.value = "";
+      selectedName.textContent = "未選択";
+    });
+    renderTrainerImageSettings();
+    updateTrainerImages({ home: "default", session: timerState === "paused" ? "rest" : "cheer", result: "result" });
+    showMessage("すべてのカスタム画像をデフォルトに戻しました。", true);
   } catch (error) {
     showMessage("カスタム画像の削除に失敗しました。", false);
   }
@@ -2307,9 +2402,44 @@ function getBackupFileName() {
   return `trelog_backup_${getTodayDateString()}.json`;
 }
 
-function buildBackupData() {
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+function dataUrlToFile(dataUrl, fileName, mimeType) {
+  const [header, base64] = dataUrl.split(",");
+  const detectedMimeType = mimeType || header.match(/data:(.*?);base64/)?.[1] || "image/png";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new File([bytes], fileName || "custom-trainer.png", { type: detectedMimeType });
+}
+
+async function getTrainerImagesBackupPayload() {
+  const payload = getTrainerImagesMetaPayload();
+
+  await Promise.all(Object.keys(customTrainerSlots).map(async (slotKey) => {
+    const slotImage = customTrainerImages[slotKey];
+    if (slotImage?.blob) {
+      payload[slotKey].dataUrl = await blobToDataUrl(slotImage.blob);
+    }
+  }));
+
+  return payload;
+}
+
+async function buildBackupData() {
   return {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     app: "trelog",
     localStorage: {
@@ -2317,7 +2447,7 @@ function buildBackupData() {
       trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null"),
       trelog_dev_scoring_config: JSON.parse(localStorage.getItem(devScoringConfigStorageKey) || "null")
     },
-    trainerImageMeta: getCustomTrainerImageMetaForBackup()
+    trainerImages: await getTrainerImagesBackupPayload()
   };
 }
 
@@ -2334,11 +2464,11 @@ function downloadJsonFile(fileName, data) {
   URL.revokeObjectURL(url);
 }
 
-function exportBackupData() {
-  const backupData = buildBackupData();
+async function exportBackupData() {
+  const backupData = await buildBackupData();
   downloadJsonFile(getBackupFileName(), backupData);
-  backupStatus.textContent = customTrainerImageMeta
-    ? "JSONを書き出しました。カスタム画像本体は含まれていません。"
+  backupStatus.textContent = Object.keys(customTrainerImages).length > 0
+    ? "画像本体をData URLとして含めたJSONを書き出しました。"
     : "JSONを書き出しました。";
   showMessage("バックアップJSONを書き出しました。", true);
 }
@@ -2365,6 +2495,25 @@ function restoreBackupLocalStorage(backupData) {
   }
 }
 
+async function restoreTrainerImagesFromBackup(backupData) {
+  if (!backupData?.trainerImages) {
+    return;
+  }
+
+  await Promise.all(Object.entries(backupData.trainerImages).map(async ([slotKey, imageData]) => {
+    if (!customTrainerSlots[slotKey]) {
+      return;
+    }
+
+    if (!imageData?.dataUrl) {
+      return;
+    }
+
+    const file = dataUrlToFile(imageData.dataUrl, imageData.fileName, imageData.mimeType);
+    await writeTrainerImageRecord(slotKey, file, imageData.savedAt || new Date().toISOString());
+  }));
+}
+
 async function importBackupData(file) {
   if (!file) {
     return;
@@ -2378,6 +2527,7 @@ async function importBackupData(file) {
   try {
     const backupData = JSON.parse(await file.text());
     restoreBackupLocalStorage(backupData);
+    await restoreTrainerImagesFromBackup(backupData);
     records = loadRecords();
     appState = loadState();
     scoringConfig = loadScoringConfig();
@@ -2389,8 +2539,11 @@ async function importBackupData(file) {
     renderHistory();
     updateAllStats();
     updateGoalRecommendation();
+    await loadCustomTrainerImage();
     updateDebugStorageOutput();
-    backupStatus.textContent = "バックアップJSONを読み込みました。カスタム画像本体は復元対象外です。";
+    backupStatus.textContent = backupData.version === 2
+      ? "バックアップJSONを読み込みました。画像Data URLがある差分は復元しました。"
+      : "version 1バックアップを読み込みました。localStorage部分のみ復元しました。";
     showMessage("バックアップJSONを読み込みました。", true);
   } catch (error) {
     showMessage("バックアップJSONの読み込みに失敗しました。", false);
@@ -2462,9 +2615,18 @@ scorePreviewIntensity.addEventListener("change", updateScorePreview);
 scorePreviewProfile.addEventListener("change", updateScorePreview);
 copyScoreConfigButton.addEventListener("click", copyScoringConfigJson);
 resetScoreConfigButton.addEventListener("click", resetDevScoringConfig);
-customTrainerFileInput.addEventListener("change", handleCustomTrainerFileChange);
-applyCustomTrainerButton.addEventListener("click", handleApplyCustomTrainerImage);
-deleteCustomTrainerButton.addEventListener("click", handleDeleteCustomTrainerImage);
+customTrainerSlotElements.forEach((slotElement) => {
+  slotElement.querySelector("[data-trainer-slot-input]").addEventListener("change", () => {
+    handleCustomTrainerFileChange(slotElement);
+  });
+  slotElement.querySelector("[data-trainer-slot-apply]").addEventListener("click", () => {
+    handleApplyCustomTrainerImage(slotElement);
+  });
+  slotElement.querySelector("[data-trainer-slot-delete]").addEventListener("click", () => {
+    handleDeleteCustomTrainerImage(slotElement);
+  });
+});
+deleteAllCustomTrainersButton.addEventListener("click", handleDeleteAllCustomTrainerImages);
 exportBackupButton.addEventListener("click", exportBackupData);
 importBackupFile.addEventListener("change", () => {
   importBackupData(importBackupFile.files[0]);

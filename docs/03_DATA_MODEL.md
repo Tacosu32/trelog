@@ -273,3 +273,71 @@ localStorageには保存しない。
 ```
 
 今回のバックアップではカスタムトレーナー画像本体は含めず、メタ情報のみ含める。
+
+## CustomTrainerImagesV2
+
+カスタムトレーナー画像は4差分で保存する。
+
+- database: `trelog_user_assets`
+- store: `trainer_images`
+- keys: `custom_default`, `custom_cheer`, `custom_result`, `custom_rest`
+
+各keyの値は以下とする。
+
+| field | 内容 |
+| --- | --- |
+| blob | 画像ファイル本体 |
+| fileName | 元ファイル名 |
+| mimeType | MIME type |
+| savedAt | 保存日時のISO文字列 |
+
+旧キー `customTrainerImage` がある場合は、読み込み時に `custom_default` として扱う。
+
+## BackupJsonV2
+
+version 2のバックアップJSONは以下の形式とする。
+
+```json
+{
+  "version": 2,
+  "exportedAt": "2026-06-01T00:00:00.000Z",
+  "app": "trelog",
+  "localStorage": {
+    "trelog_records": [],
+    "trelog_state": null,
+    "trelog_dev_scoring_config": null
+  },
+  "trainerImages": {
+    "custom_default": {
+      "hasImage": false,
+      "fileName": null,
+      "mimeType": null,
+      "savedAt": null,
+      "dataUrl": null
+    },
+    "custom_cheer": {
+      "hasImage": false,
+      "fileName": null,
+      "mimeType": null,
+      "savedAt": null,
+      "dataUrl": null
+    },
+    "custom_result": {
+      "hasImage": false,
+      "fileName": null,
+      "mimeType": null,
+      "savedAt": null,
+      "dataUrl": null
+    },
+    "custom_rest": {
+      "hasImage": false,
+      "fileName": null,
+      "mimeType": null,
+      "savedAt": null,
+      "dataUrl": null
+    }
+  }
+}
+```
+
+`dataUrl` がある場合、インポート時にIndexedDBへ画像本体を復元する。version 1バックアップはlocalStorage部分のみ復元する。

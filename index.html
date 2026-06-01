@@ -277,32 +277,133 @@
         <h2 id="trainer-settings-title">トレーナー画像設定</h2>
         <span id="custom-trainer-status" class="dev-scoring-status">デフォルト</span>
       </div>
-      <div class="custom-trainer-preview">
-        <div class="trainer-visual custom-trainer-preview-visual" aria-hidden="true">
-          <img id="custom-trainer-preview-image" class="trainer-image hidden" alt="">
-          <div class="trainer-face">
-            <span class="trainer-eye"></span>
-            <span class="trainer-eye"></span>
-            <span class="trainer-smile"></span>
+      <div id="custom-trainer-slots" class="custom-trainer-slots">
+        <section class="custom-trainer-slot" data-trainer-slot="custom_default" aria-labelledby="custom-trainer-default-title">
+          <div class="section-heading">
+            <h3 id="custom-trainer-default-title">通常画像</h3>
+            <span class="dev-scoring-status" data-trainer-slot-status>デフォルト</span>
           </div>
-        </div>
-        <div>
-          <strong id="custom-trainer-file-name">未設定</strong>
-          <p id="custom-trainer-meta" class="settings-description">png / jpg / jpeg / webp、5MBまで対応します。</p>
-        </div>
+          <div class="custom-trainer-preview">
+            <div class="trainer-visual custom-trainer-preview-visual" aria-hidden="true">
+              <img class="trainer-image hidden" alt="" data-trainer-slot-preview>
+              <div class="trainer-face">
+                <span class="trainer-eye"></span>
+                <span class="trainer-eye"></span>
+                <span class="trainer-smile"></span>
+              </div>
+            </div>
+            <div>
+              <strong data-trainer-slot-file-name>未設定</strong>
+              <p class="settings-description" data-trainer-slot-meta>ホーム、通常時に使います。</p>
+            </div>
+          </div>
+          <label class="file-picker">
+            <span>画像ファイルを選択</span>
+            <small data-trainer-slot-selected-name>未選択</small>
+            <input class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-trainer-slot-input>
+          </label>
+          <div class="settings-actions">
+            <button class="save-button" type="button" data-trainer-slot-apply>適用</button>
+            <button class="secondary-button" type="button" data-trainer-slot-delete>削除 / デフォルトに戻す</button>
+          </div>
+        </section>
+
+        <section class="custom-trainer-slot" data-trainer-slot="custom_cheer" aria-labelledby="custom-trainer-cheer-title">
+          <div class="section-heading">
+            <h3 id="custom-trainer-cheer-title">応援画像</h3>
+            <span class="dev-scoring-status" data-trainer-slot-status>デフォルト</span>
+          </div>
+          <div class="custom-trainer-preview">
+            <div class="trainer-visual custom-trainer-preview-visual" aria-hidden="true">
+              <img class="trainer-image hidden" alt="" data-trainer-slot-preview>
+              <div class="trainer-face">
+                <span class="trainer-eye"></span>
+                <span class="trainer-eye"></span>
+                <span class="trainer-smile"></span>
+              </div>
+            </div>
+            <div>
+              <strong data-trainer-slot-file-name>未設定</strong>
+              <p class="settings-description" data-trainer-slot-meta>セッション中、応援中に使います。</p>
+            </div>
+          </div>
+          <label class="file-picker">
+            <span>画像ファイルを選択</span>
+            <small data-trainer-slot-selected-name>未選択</small>
+            <input class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-trainer-slot-input>
+          </label>
+          <div class="settings-actions">
+            <button class="save-button" type="button" data-trainer-slot-apply>適用</button>
+            <button class="secondary-button" type="button" data-trainer-slot-delete>削除 / デフォルトに戻す</button>
+          </div>
+        </section>
+
+        <section class="custom-trainer-slot" data-trainer-slot="custom_result" aria-labelledby="custom-trainer-result-title">
+          <div class="section-heading">
+            <h3 id="custom-trainer-result-title">祝福画像</h3>
+            <span class="dev-scoring-status" data-trainer-slot-status>デフォルト</span>
+          </div>
+          <div class="custom-trainer-preview">
+            <div class="trainer-visual custom-trainer-preview-visual" aria-hidden="true">
+              <img class="trainer-image hidden" alt="" data-trainer-slot-preview>
+              <div class="trainer-face">
+                <span class="trainer-eye"></span>
+                <span class="trainer-eye"></span>
+                <span class="trainer-smile"></span>
+              </div>
+            </div>
+            <div>
+              <strong data-trainer-slot-file-name>未設定</strong>
+              <p class="settings-description" data-trainer-slot-meta>リザルト、目標達成、レベルアップ時に使います。</p>
+            </div>
+          </div>
+          <label class="file-picker">
+            <span>画像ファイルを選択</span>
+            <small data-trainer-slot-selected-name>未選択</small>
+            <input class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-trainer-slot-input>
+          </label>
+          <div class="settings-actions">
+            <button class="save-button" type="button" data-trainer-slot-apply>適用</button>
+            <button class="secondary-button" type="button" data-trainer-slot-delete>削除 / デフォルトに戻す</button>
+          </div>
+        </section>
+
+        <section class="custom-trainer-slot" data-trainer-slot="custom_rest" aria-labelledby="custom-trainer-rest-title">
+          <div class="section-heading">
+            <h3 id="custom-trainer-rest-title">休憩画像</h3>
+            <span class="dev-scoring-status" data-trainer-slot-status>デフォルト</span>
+          </div>
+          <div class="custom-trainer-preview">
+            <div class="trainer-visual custom-trainer-preview-visual" aria-hidden="true">
+              <img class="trainer-image hidden" alt="" data-trainer-slot-preview>
+              <div class="trainer-face">
+                <span class="trainer-eye"></span>
+                <span class="trainer-eye"></span>
+                <span class="trainer-smile"></span>
+              </div>
+            </div>
+            <div>
+              <strong data-trainer-slot-file-name>未設定</strong>
+              <p class="settings-description" data-trainer-slot-meta>一時停止、休憩、休憩チケット使用時に使います。</p>
+            </div>
+          </div>
+          <label class="file-picker">
+            <span>画像ファイルを選択</span>
+            <small data-trainer-slot-selected-name>未選択</small>
+            <input class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-trainer-slot-input>
+          </label>
+          <div class="settings-actions">
+            <button class="save-button" type="button" data-trainer-slot-apply>適用</button>
+            <button class="secondary-button" type="button" data-trainer-slot-delete>削除 / デフォルトに戻す</button>
+          </div>
+        </section>
       </div>
-      <label class="file-picker" for="custom-trainer-file">
-        <span>画像ファイルを選択</span>
-        <small id="custom-trainer-selected-name">未選択</small>
-      </label>
-      <input id="custom-trainer-file" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp">
       <div class="settings-actions">
-        <button id="apply-custom-trainer-button" class="save-button" type="button">適用</button>
-        <button id="delete-custom-trainer-button" class="secondary-button" type="button">削除 / デフォルトに戻す</button>
+        <button id="delete-all-custom-trainers-button" class="secondary-button" type="button">すべてデフォルトに戻す</button>
       </div>
       <p class="settings-description">
         この画像はこの端末のブラウザ内に保存されます。GitHubにはアップロードされません。
-        ブラウザのサイトデータを削除すると、この画像も消えます。
+        ブラウザのサイトデータを削除すると、この画像も消えます。必要ならバックアップしてください。
       </p>
     </section>
 
@@ -318,7 +419,7 @@
         <label class="backup-import-picker" for="import-backup-file">JSONバックアップを読み込む</label>
       </div>
       <input id="import-backup-file" class="visually-hidden" type="file" accept="application/json,.json">
-      <p id="backup-status" class="settings-description">画像本体は今回のバックアップ対象外です。</p>
+      <p id="backup-status" class="settings-description">画像本体もData URLとして含めます。画像を設定している場合、JSONサイズが大きくなります。</p>
     </section>
 
     <section id="debug-panel" class="debug-panel">

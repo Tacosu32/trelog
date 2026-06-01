@@ -290,3 +290,13 @@
 - バックアップJSONにはカスタムトレーナー画像のメタ情報を含める。ただし画像本体のエクスポートは今回は必須としない。
 - バックアップJSONをインポートすると、既存の記録と設定を確認後に上書き復元する。
 - タブを閉じるだけではlocalStorage/IndexedDBは通常残るが、ブラウザのサイトデータ削除やDevToolsのClear site dataでは記録・設定・カスタム画像が消えるため、必要に応じてバックアップする。
+
+## 2026-06-01 追記: カスタムトレーナー画像4差分
+
+- ユーザー個人のカスタムトレーナー画像は、通常、応援、祝福、休憩の4差分を設定できる。
+- IndexedDBの `trainer_images` store に `custom_default`、`custom_cheer`、`custom_result`、`custom_rest` として保存する。
+- 旧キー `customTrainerImage` がある場合は、互換のため `custom_default` として扱う。
+- ホームは通常、セッションrunningは応援、セッションpausedは休憩、リザルトは祝福を使う。
+- 応援、祝福、休憩のカスタム画像が未設定の場合は `custom_default` をフォールバックとして使う。
+- バックアップJSONはversion 2とし、4差分のメタ情報と、可能な場合はData URL化した画像本体を含める。
+- version 1バックアップもlocalStorage部分は復元できる。

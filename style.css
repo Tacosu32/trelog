@@ -603,6 +603,25 @@ input[type="radio"] {
   gap: 12px;
 }
 
+.custom-trainer-slots {
+  display: grid;
+  gap: 12px;
+}
+
+.custom-trainer-slot {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.custom-trainer-slot h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
 .custom-trainer-preview {
   display: grid;
   grid-template-columns: 112px 1fr;
@@ -625,6 +644,10 @@ input[type="radio"] {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+#delete-all-custom-trainers-button {
+  grid-column: 1 / -1;
 }
 
 .backup-import-picker {
