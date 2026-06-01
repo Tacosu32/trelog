@@ -128,6 +128,18 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 トレーナーコメントを指定された文言に変更する。
 開始、一時停止、再開、保存、目標達成、休憩チケット自動使用、入力エラーの分岐で使う。
 
+### getTrainerLine(context)
+
+`TRAINER_LINES` から、セッション状態、経過秒数、種目名、記録方式、きつさ、目標達成見込みに応じた定型セリフを返す。
+
+### updateSessionTrainerLine(projectedGoalReached)
+
+現在のセッション状態をもとに、セッションオーバーレイ内のトレーナーコメントを更新する。
+
+### setTemporarySessionLine(message)
+
+再開直後など一時的に優先表示したいセッションセリフを数秒だけ表示し、その後は通常の状態分岐へ戻す。
+
 ### validateRecord(exercise, amount, recordType)
 
 保存前に、種目が選択されているか、分または回が入力されているかを確認する。
@@ -234,6 +246,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### updateSessionDisplay()
 
 セッションオーバーレイ内の状態表示、種目名、記録方式、経過時間、見込み込みの今日のスコア、セッション見込みスコア、目標到達目安、音楽ファイル名を更新する。
+あわせて、セッション状態に応じたトレーナー画像とセリフ、音楽ループ表示を更新する。
 
 ### startSession()
 
@@ -443,6 +456,14 @@ localStorageの `trelog_state` から状態データを読み込む。
 
 音楽ファイルが選択されたときに、ファイル名を画面に表示し、再生用URLを作る。
 セッション画面内の音楽ファイル名表示も更新する。
+
+### applyMusicLoopSetting()
+
+`trelog_state.musicLoop` を `audio.loop` と通常画面・セッション画面のループチェックボックスへ反映する。
+
+### handleMusicLoopChange(event)
+
+音楽ループON/OFFが変更されたときに、`trelog_state.musicLoop` を更新してlocalStorageに保存する。
 
 ### getSelectedMusicFileName()
 

@@ -31,3 +31,10 @@
 - スコア調整パネルで検証した設定を `DEFAULT_SCORING_CONFIG` に正式反映する運用を整える
 - 公開用トレーナー画像 `trainer_default.png`、`trainer_cheer.png`、`trainer_result.png`、`trainer_rest.png` を正式制作する
 - アプリ内アップロード画像をIndexedDBへ保存し、GitHubに個人素材を含めない運用を検討する
+- トレーナー選択画面を検討する
+- トレーナー画像差し替えを検討する
+- 口調設定を検討する
+- カスタムトレーナー作成を検討する
+- LLMによる動的セリフ生成を検討する
+- セッション中SEを検討する
+- 音楽プレイリストを検討する

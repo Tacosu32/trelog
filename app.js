@@ -7,6 +7,7 @@ const musicFileInput = document.getElementById("music-file");
 const musicFileName = document.getElementById("music-file-name");
 const musicPlayer = document.getElementById("music-player");
 const playMusicButton = document.getElementById("play-music-button");
+const musicLoopToggle = document.getElementById("music-loop-toggle");
 const homeStartRecordButton = document.getElementById("home-start-record-button");
 const homeTrainerImage = document.getElementById("home-trainer-image");
 const startWorkoutButton = document.getElementById("start-workout-button");
@@ -70,6 +71,7 @@ const sessionRepsPanel = document.getElementById("session-reps-panel");
 const sessionRepsInput = document.getElementById("session-reps-input");
 const sessionRepsClearButton = document.getElementById("session-reps-clear-button");
 const sessionMusicFileName = document.getElementById("session-music-file-name");
+const sessionMusicLoopToggle = document.getElementById("session-music-loop-toggle");
 const sessionMusicToggleButton = document.getElementById("session-music-toggle-button");
 const sessionPauseButton = document.getElementById("session-pause-button");
 const sessionSaveButton = document.getElementById("session-save-button");
@@ -191,6 +193,18 @@ const evaluationProfiles = {
     description: "高負荷トレーニング向けに、厳しめに評価します。"
   }
 };
+const TRAINER_LINES = {
+  sessionStart: ({ exerciseName }) => `${exerciseName || "この種目"}、いこう。タイマーは見てるから、今は動きに集中してね。`,
+  elapsed10: () => "いい入りだよ。そのまま呼吸を止めずに続けよう。",
+  elapsed30: () => "30秒通過！フォームを小さく整えて、あと少し積もう。",
+  elapsed60: () => "1分到達！ここまで来たの、かなりいい感じだよ。",
+  paused: () => "一時停止中だよ。息を整えて、水分も忘れずにね。",
+  resumed: () => "再開だね。無理なくリズムを戻していこう。",
+  repsInput: ({ sessionReps }) => `${sessionReps}回、入力できたよ。きれいに記録へ残そう。`,
+  projectedGoalReached: () => "このまま記録すると今日の目標達成！最後まで一緒にいこう。",
+  highIntensity: () => "今日はしっかり追い込む日だね。きつい分、休憩も大事にしよう。",
+  lowIntensity: () => "軽めでも続けてるのがえらいよ。今日の流れを守ろう。"
+};
 
 let records = [];
 let appState = getDefaultState();
@@ -200,6 +214,7 @@ let selectedMusicUrl = "";
 let timerState = "idle";
 let elapsedSeconds = 0;
 let timerId = null;
+let sessionLineOverride = "";
 const trainerImagePaths = {
   localPrivate: "assets/trainer/local/trainer_private.png",
   default: "assets/trainer/public/trainer_default.png",
@@ -505,6 +520,67 @@ function updateTrainerComment(message) {
   }
 }
 
+function getTrainerLine(context) {
+  if (context.sessionState === "paused") {
+    return TRAINER_LINES.paused(context);
+  }
+
+  if (context.projectedGoalReached) {
+    return TRAINER_LINES.projectedGoalReached(context);
+  }
+
+  if (context.mode === "reps" && Number(context.sessionReps || 0) > 0) {
+    return TRAINER_LINES.repsInput(context);
+  }
+
+  if (context.elapsedSeconds >= 60) {
+    return TRAINER_LINES.elapsed60(context);
+  }
+
+  if (context.elapsedSeconds >= 30) {
+    return TRAINER_LINES.elapsed30(context);
+  }
+
+  if (context.elapsedSeconds >= 10) {
+    return TRAINER_LINES.elapsed10(context);
+  }
+
+  if (Number(context.intensity || 0) >= 4) {
+    return TRAINER_LINES.highIntensity(context);
+  }
+
+  if (Number(context.intensity || 0) <= 2) {
+    return TRAINER_LINES.lowIntensity(context);
+  }
+
+  return TRAINER_LINES.sessionStart(context);
+}
+
+function updateSessionTrainerLine(projectedGoalReached) {
+  const context = {
+    sessionState: timerState,
+    elapsedSeconds,
+    exerciseName: getSelectedExercise(),
+    mode: getRecordType(),
+    intensity: getSelectedEffort(),
+    sessionReps: sessionRepsInput.value,
+    projectedGoalReached
+  };
+  const line = sessionLineOverride || getTrainerLine(context);
+
+  sessionTrainerComment.textContent = line;
+}
+
+function setTemporarySessionLine(message) {
+  sessionLineOverride = message;
+  setTimeout(() => {
+    if (sessionLineOverride === message) {
+      sessionLineOverride = "";
+      updateSessionDisplay();
+    }
+  }, 4000);
+}
+
 function validateRecord(exercise, amount, recordType) {
   if (exercise === "") {
     updateTrainerComment("種目を選べば大丈夫。今日の一歩を一緒に記録しよう。");
@@ -596,9 +672,10 @@ function updateTimerDisplay() {
 
 function startTimer() {
   timerState = "running";
+  sessionLineOverride = "";
   startWorkoutButton.textContent = "一時停止";
   sessionPauseButton.textContent = "一時停止";
-  updateTrainerComment("スタート！タイマーを見ながら、今の種目に集中しよう。");
+  updateTrainerComment("スタート！タイマーは任せて、今の種目に集中しよう。");
   showMessage("タイマーを開始しました。", true);
   updateSessionDisplay();
 
@@ -612,6 +689,7 @@ function startTimer() {
 
 function pauseTimer() {
   timerState = "paused";
+  sessionLineOverride = TRAINER_LINES.paused({});
   startWorkoutButton.textContent = "再開";
   sessionPauseButton.textContent = "再開";
   updateTrainerComment("一時停止中だよ。息を整えたら再開しよう。");
@@ -636,6 +714,7 @@ function resetTimer() {
   timerId = null;
   timerState = "idle";
   elapsedSeconds = 0;
+  sessionLineOverride = "";
   startWorkoutButton.textContent = "筋トレ開始";
   sessionPauseButton.textContent = "一時停止";
   updateTimerDisplay();
@@ -656,7 +735,8 @@ function handleWorkoutButtonClick() {
   startTimer();
 
   if (wasPaused) {
-    updateTrainerComment("再開だね。少しずつリズムを戻していこう。");
+    setTemporarySessionLine(TRAINER_LINES.resumed({}));
+    updateTrainerComment(sessionLineOverride);
   }
 }
 
@@ -765,6 +845,8 @@ function updateSessionDisplay() {
   setTrainerImage(sessionTrainerImage, trainerContext);
   const projectedScore = calculateSessionProjectedScore(exercise, recordType, effort);
   const expectedScore = calculateTodayScore() + projectedScore;
+  const projectedGoalReached = calculateTodayScore() < getDailyGoalScore()
+    && expectedScore >= getDailyGoalScore();
 
   sessionStateLabel.textContent = stateText;
   sessionTitle.textContent = exercise || "未選択";
@@ -775,7 +857,10 @@ function updateSessionDisplay() {
   sessionProjectedScore.textContent = `見込み +${projectedScore}pt`;
   sessionGoalRecommendation.textContent = getGoalRecommendationText(exercise, recordType, effort, projectedScore);
   sessionMusicFileName.textContent = getSelectedMusicFileName();
+  musicLoopToggle.checked = Boolean(appState.musicLoop);
+  sessionMusicLoopToggle.checked = Boolean(appState.musicLoop);
   sessionMusicToggleButton.textContent = musicPlayer.paused ? "再生" : "停止";
+  updateSessionTrainerLine(projectedGoalReached);
 }
 
 function startSession() {
@@ -808,7 +893,8 @@ function handleSessionPauseButtonClick() {
   }
 
   startTimer();
-  updateTrainerComment("再開だね。少しずつリズムを戻していこう。");
+  setTemporarySessionLine(TRAINER_LINES.resumed({}));
+  updateTrainerComment(sessionLineOverride);
 }
 
 function handleSessionSaveButtonClick() {
@@ -1326,7 +1412,8 @@ function getDefaultState() {
     restDates: [],
     claimedGoalRewardDates: [],
     claimedLevelRewards: [],
-    evaluationProfile: "standard"
+    evaluationProfile: "standard",
+    musicLoop: false
   };
 }
 
@@ -1347,7 +1434,8 @@ function normalizeState(parsedState) {
       : defaultState.claimedLevelRewards,
     evaluationProfile: evaluationProfiles[parsedState.evaluationProfile]
       ? parsedState.evaluationProfile
-      : defaultState.evaluationProfile
+      : defaultState.evaluationProfile,
+    musicLoop: Boolean(parsedState.musicLoop ?? defaultState.musicLoop)
   };
 }
 
@@ -1422,7 +1510,22 @@ function handleMusicFileChange() {
 
   selectedMusicUrl = file ? URL.createObjectURL(file) : "";
   musicPlayer.src = selectedMusicUrl;
+  applyMusicLoopSetting();
   updateSessionDisplay();
+}
+
+function applyMusicLoopSetting() {
+  musicPlayer.loop = Boolean(appState.musicLoop);
+  musicLoopToggle.checked = Boolean(appState.musicLoop);
+  sessionMusicLoopToggle.checked = Boolean(appState.musicLoop);
+}
+
+function handleMusicLoopChange(event) {
+  appState.musicLoop = event.target.checked;
+  saveState();
+  applyMusicLoopSetting();
+  updateSessionDisplay();
+  showMessage(appState.musicLoop ? "音楽ループをONにしました。" : "音楽ループをOFFにしました。", true);
 }
 
 function getSelectedMusicFileName() {
@@ -1615,6 +1718,7 @@ function adjustSessionReps(amount) {
   const currentReps = Number(sessionRepsInput.value || 0);
   sessionRepsInput.value = Math.max(currentReps + amount, 0);
   recordAmountInput.value = sessionRepsInput.value;
+  sessionLineOverride = "";
   updateSessionDisplay();
   updateGoalRecommendation();
 }
@@ -1622,6 +1726,7 @@ function adjustSessionReps(amount) {
 function clearSessionReps() {
   sessionRepsInput.value = "";
   recordAmountInput.value = "";
+  sessionLineOverride = "";
   updateSessionDisplay();
   updateGoalRecommendation();
 }
@@ -1969,6 +2074,7 @@ function initializeApp() {
   saveState();
   todayLabel.textContent = getTodayText();
   updateTrainerImages({ home: "default", session: "cheer", result: "result" });
+  applyMusicLoopSetting();
   setupDebugPanel();
   renderScoringConfigPanel();
   updateEvaluationProfileDisplay();
@@ -1986,6 +2092,8 @@ musicFileInput.addEventListener("change", handleMusicFileChange);
 musicPlayer.addEventListener("play", updateSessionDisplay);
 musicPlayer.addEventListener("pause", updateSessionDisplay);
 playMusicButton.addEventListener("click", playSelectedMusic);
+musicLoopToggle.addEventListener("change", handleMusicLoopChange);
+sessionMusicLoopToggle.addEventListener("change", handleMusicLoopChange);
 evaluationProfileSelect.addEventListener("change", handleEvaluationProfileChange);
 scoreConfigFields.addEventListener("input", (event) => {
   if (event.target.classList.contains("score-config-input")) {
@@ -2017,6 +2125,7 @@ resultOkButton.addEventListener("click", closeResultOverlay);
 sessionMusicToggleButton.addEventListener("click", toggleSessionMusic);
 sessionRepsInput.addEventListener("input", () => {
   recordAmountInput.value = sessionRepsInput.value;
+  sessionLineOverride = "";
   updateSessionDisplay();
   updateGoalRecommendation();
 });
@@ -2036,7 +2145,10 @@ recordTypeInputs.forEach((recordTypeInput) => {
   recordTypeInput.addEventListener("change", updateRecordUnit);
 });
 document.querySelectorAll('input[name="effort"]').forEach((effortInput) => {
-  effortInput.addEventListener("change", updateGoalRecommendation);
+  effortInput.addEventListener("change", () => {
+    sessionLineOverride = "";
+    updateGoalRecommendation();
+  });
 });
 navButtons.forEach((button) => {
   button.addEventListener("click", () => {

@@ -910,6 +910,10 @@ input[type="radio"] {
   box-shadow: 0 20px 60px rgba(45, 40, 48, 0.26);
 }
 
+.session-screen {
+  gap: 10px;
+}
+
 .result-screen {
   position: relative;
   overflow: hidden auto;
@@ -1202,19 +1206,24 @@ input[type="radio"] {
 
 .session-trainer {
   display: grid;
-  grid-template-columns: 108px 1fr;
+  grid-template-columns: 148px 1fr;
   gap: 12px;
   align-items: center;
 }
 
 .session-trainer-visual {
-  height: 126px;
+  height: 190px;
 }
 
 .session-speech {
-  min-height: 110px;
+  min-height: 136px;
   display: grid;
   align-items: center;
+}
+
+.session-speech p {
+  font-size: 1.02rem;
+  line-height: 1.65;
 }
 
 .session-main,
@@ -1228,15 +1237,16 @@ input[type="radio"] {
 
 .session-main {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   gap: 12px;
   align-items: center;
-  padding: 14px;
+  padding: 16px;
+  text-align: center;
 }
 
 .session-main h2 {
   margin-top: 4px;
-  font-size: 1.35rem;
+  font-size: 1.42rem;
 }
 
 .session-main p {
@@ -1247,9 +1257,31 @@ input[type="radio"] {
 }
 
 .session-main > strong {
-  font-size: 2.2rem;
+  font-size: 3.6rem;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+}
+
+.session-details {
+  display: grid;
+  gap: 10px;
+}
+
+.session-details summary {
+  min-height: 42px;
+  display: grid;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--muted);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.session-details[open] summary {
+  margin-bottom: 10px;
 }
 
 .session-stats {
@@ -1343,6 +1375,7 @@ input[type="radio"] {
   display: grid;
   gap: 8px;
   padding: 14px;
+  font-size: 0.9rem;
 }
 
 .session-music-panel strong {
@@ -1352,6 +1385,24 @@ input[type="radio"] {
 
 .session-music-actions {
   grid-template-columns: 1fr 92px;
+}
+
+.loop-toggle,
+.session-loop-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.loop-toggle input,
+.session-loop-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
 }
 
 .session-actions {
@@ -1436,7 +1487,11 @@ input[type="radio"] {
 
   .session-trainer,
   .result-trainer {
-    grid-template-columns: 92px 1fr;
+    grid-template-columns: 112px 1fr;
+  }
+
+  .session-trainer-visual {
+    height: 154px;
   }
 
   .session-main,
@@ -1447,7 +1502,7 @@ input[type="radio"] {
   }
 
   .session-main > strong {
-    font-size: 2rem;
+    font-size: 2.9rem;
   }
 }
 
