@@ -123,8 +123,8 @@
 
 ### 12. PWA土台
 
-- `src/manifest.json` を用意し、アプリ名、説明、開始URL、表示モード、テーマカラー、アイコン参照を定義する
-- `src/service-worker.js` を用意し、α版の主要ファイルをキャッシュできるようにする
+- `manifest.json` を用意し、アプリ名、説明、開始URL、表示モード、テーマカラー、アイコン参照を定義する
+- `service-worker.js` を用意し、α版の主要ファイルをキャッシュできるようにする
 - キャッシュ対象は `index.html`、`style.css`、`app.js`、`manifest.json` とする
 - 仮アイコンとして `assets/icons/icon.svg` を用意し、manifestから存在するアイコンだけを参照する
 - アイコンファイルが存在する場合は、service workerでキャッシュ対象に含める

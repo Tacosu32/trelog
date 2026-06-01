@@ -51,3 +51,9 @@
 - α版をブラウザで動くWebアプリとして保ちつつ、ホーム画面追加やスタンドアロン表示へ進められるようにPWA化の土台を追加する。
 - 今回はmanifestとservice workerの最小構成に留め、Push通知、スマホウィジェット、クラウド保存、ネイティブアプリ化は実装しない。
 - PNGアイコンは正式制作前のためmanifestから外し、存在する仮SVGアイコンだけを参照する。存在しないファイル参照によるManifest警告を避けるため。
+
+## 2026-06-01 GitHub Pages向け配置
+
+- GitHub Pagesで公開しやすくするため、Webアプリ本体は `src/` 配下ではなくプロジェクトルートに置く。
+- `index.html`、`style.css`、`app.js`、`manifest.json`、`service-worker.js` はルート配置とし、各参照パスはルートからの相対パスで統一する。
+- localStorageのキーや保存形式は変更しない。

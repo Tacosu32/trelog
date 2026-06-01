@@ -8,7 +8,7 @@ const CORE_ASSETS = [
 ];
 
 const OPTIONAL_ASSETS = [
-  "../assets/icons/icon.svg"
+  "./assets/icons/icon.svg"
 ];
 
 self.addEventListener("install", (event) => {
