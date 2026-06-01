@@ -79,29 +79,56 @@ localStorageには保存しない。
 
 ## Exercise Definitions
 
-簡易スコア計算と記録方式制御に使う種目定義。
+記録方式制御に使う種目定義。
 localStorageには保存せず、`app.js` の `EXERCISE_DEFINITIONS` で管理する。
 
-| id | 種目 | 対応方式 | 時間係数 | 回数係数 |
-| --- | --- | --- | ---: | ---: |
-| pushup | 腕立て | time / reps | 10 | 2 |
-| abs | 腹筋 | time / reps | 8 | 1.5 |
-| squat | スクワット | time / reps | 8 | 1.5 |
-| plank | プランク | time | 12 | 0 |
-| stretch | ストレッチ | time | 3 | 0 |
-| custom | 自由種目 | time / reps | 5 | 1 |
+| id | 種目 | 対応方式 |
+| --- | --- | --- |
+| pushup | 腕立て | time / reps |
+| abs | 腹筋 | time / reps |
+| squat | スクワット | time / reps |
+| plank | プランク | time |
+| stretch | ストレッチ | time |
+| custom | 自由種目 | time / reps |
 
 `allowedModes` に含まれない記録方式はUIで選択できず、開始・保存時にも弾く。
 
-## Effort Multipliers
+## Scoring Config
 
-| きつさ | 補正 |
-| --- | ---: |
-| 1 | 0.8 |
-| 2 | 0.9 |
-| 3 | 1.0 |
-| 4 | 1.1 |
-| 5 | 1.2 |
+スコア計算に使う正式デフォルト設定。
+`app.js` の `DEFAULT_SCORING_CONFIG` で管理する。
+
+```js
+{
+  dailyGoalScore: 100,
+  intensityMultipliers: { 1: 0.8, 2: 0.9, 3: 1.0, 4: 1.1, 5: 1.2 },
+  evaluationProfileMultipliers: {
+    beginner: 1.2,
+    standard: 1.0,
+    experienced: 0.85,
+    hard: 0.7
+  },
+  exerciseCoefficients: {
+    pushup: { time: 10, reps: 2 },
+    abs: { time: 8, reps: 1.5 },
+    squat: { time: 15, reps: 1.5 },
+    plank: { time: 12, reps: 0 },
+    stretch: { time: 3, reps: 0 },
+    custom: { time: 5, reps: 1 }
+  }
+}
+```
+
+## Dev Scoring Config
+
+開発中にブラウザ上でスコア設計を検証するための一時上書き設定。
+保存キーは `trelog_dev_scoring_config` とする。
+
+- 形式は `DEFAULT_SCORING_CONFIG` と同じ
+- 存在する場合は `DEFAULT_SCORING_CONFIG` より優先する
+- 存在しない場合は `DEFAULT_SCORING_CONFIG` を使う
+- 「デフォルトに戻す」で削除する
+- 過去ログのスコアは再計算しない
 
 ## Evaluation Profiles
 

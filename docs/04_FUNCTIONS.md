@@ -8,6 +8,31 @@
 対象の `.app-view` だけを表示し、下部ナビゲーションの選択状態と `aria-current` を更新する。
 ホーム画面の「記録を開始する」ボタンと下部ナビゲーションから呼び出す。
 
+### cloneScoringConfig(config)
+
+スコア設定オブジェクトをディープコピーする。
+
+### normalizeScoringConfig(config)
+
+開発者用スコア設定を `DEFAULT_SCORING_CONFIG` の形に補完する。
+不足値や不正値はデフォルト値で埋める。
+
+### loadScoringConfig()
+
+localStorageの `trelog_dev_scoring_config` を読み込み、有効な場合は開発者用設定、不正または未保存なら `DEFAULT_SCORING_CONFIG` を返す。
+
+### saveDevScoringConfig()
+
+現在のスコア設定を `trelog_dev_scoring_config` に保存し、開発者用設定を有効状態にする。
+
+### resetDevScoringConfig()
+
+`trelog_dev_scoring_config` を削除し、スコア設定を `DEFAULT_SCORING_CONFIG` に戻す。
+
+### getDailyGoalScore()
+
+現在有効なスコア設定から、今日の目標スコアを返す。
+
 ### getSelectedExercise()
 
 保存対象として選択された1つの種目を返す。
@@ -213,11 +238,12 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### getExerciseCoefficient(exercise, recordType)
 
 種目と記録方式に応じて、簡易スコア計算用の種目係数を返す。
-係数は `EXERCISE_DEFINITIONS` の `timeCoefficient` または `repsCoefficient` を参照する。
+係数は現在有効なスコア設定の `exerciseCoefficients` を参照する。
 
 ### getEffortMultiplier(effort)
 
 きつさに応じた補正値を返す。
+倍率は現在有効なスコア設定の `intensityMultipliers` を参照する。
 
 ### getEvaluationProfile()
 
@@ -227,6 +253,7 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 ### getEvaluationProfileMultiplier()
 
 現在の評価プロファイルに対応するスコア補正倍率を返す。
+倍率は現在有効なスコア設定の `evaluationProfileMultipliers` を参照する。
 
 ### updateEvaluationProfileDisplay()
 
@@ -236,6 +263,28 @@ Dateオブジェクトを `YYYY-MM-DD` 形式に変換する。
 
 設定画面で評価レベルが変更されたときに、`trelog_state.evaluationProfile` を更新してlocalStorageへ保存する。
 変更後は目標到達目安、セッション見込み、デバッグ表示を更新する。
+
+### renderScoringConfigPanel()
+
+設定画面の開発者用スコア調整パネルを描画する。
+今日の目標スコア、きつさ倍率、評価プロファイル倍率、種目係数、プレビュー、JSON表示を初期化する。
+
+### updateScoringConfigPanelState()
+
+開発者用スコア設定の有効表示、設定JSON、評価レベル説明、スコアプレビューを更新する。
+
+### updateScoringConfigFromInput(input)
+
+スコア調整パネルの入力変更を現在のスコア設定へ反映し、`trelog_dev_scoring_config` に保存する。
+変更後は目標カード、履歴、セッション見込み、デバッグ表示を更新する。
+
+### updateScorePreview()
+
+テスト計算エリアの入力値から、スコア、使用係数、計算式を表示する。
+
+### copyScoringConfigJson()
+
+現在の開発者用スコア設定JSONをクリップボードへコピーする。
 
 ### calculateScore(exercise, recordType, amount, effort)
 

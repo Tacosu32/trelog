@@ -1,7 +1,7 @@
 const DEBUG_MODE = true;
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
-const targetScore = 100;
+const devScoringConfigStorageKey = "trelog_dev_scoring_config";
 
 const musicFileInput = document.getElementById("music-file");
 const musicFileName = document.getElementById("music-file-name");
@@ -41,6 +41,17 @@ const nextLevelExpText = document.getElementById("next-level-exp");
 const levelProgressFill = document.getElementById("level-progress-fill");
 const evaluationProfileSelect = document.getElementById("evaluation-profile-select");
 const evaluationProfileDescription = document.getElementById("evaluation-profile-description");
+const devScoringStatus = document.getElementById("dev-scoring-status");
+const scoreConfigFields = document.getElementById("score-config-fields");
+const scorePreviewExercise = document.getElementById("score-preview-exercise");
+const scorePreviewMode = document.getElementById("score-preview-mode");
+const scorePreviewAmount = document.getElementById("score-preview-amount");
+const scorePreviewIntensity = document.getElementById("score-preview-intensity");
+const scorePreviewProfile = document.getElementById("score-preview-profile");
+const scorePreviewResult = document.getElementById("score-preview-result");
+const scoreConfigJson = document.getElementById("score-config-json");
+const copyScoreConfigButton = document.getElementById("copy-score-config-button");
+const resetScoreConfigButton = document.getElementById("reset-score-config-button");
 const debugPanel = document.getElementById("debug-panel");
 const debugStorageOutput = document.getElementById("debug-storage-output");
 const sessionOverlay = document.getElementById("session-overlay");
@@ -87,78 +98,101 @@ const EXERCISE_DEFINITIONS = {
   pushup: {
     id: "pushup",
     name: "腕立て",
-    allowedModes: ["time", "reps"],
-    timeCoefficient: 10,
-    repsCoefficient: 2
+    allowedModes: ["time", "reps"]
   },
   abs: {
     id: "abs",
     name: "腹筋",
-    allowedModes: ["time", "reps"],
-    timeCoefficient: 8,
-    repsCoefficient: 1.5
+    allowedModes: ["time", "reps"]
   },
   squat: {
     id: "squat",
     name: "スクワット",
-    allowedModes: ["time", "reps"],
-    timeCoefficient: 8,
-    repsCoefficient: 1.5
+    allowedModes: ["time", "reps"]
   },
   plank: {
     id: "plank",
     name: "プランク",
-    allowedModes: ["time"],
-    timeCoefficient: 12,
-    repsCoefficient: 0
+    allowedModes: ["time"]
   },
   stretch: {
     id: "stretch",
     name: "ストレッチ",
-    allowedModes: ["time"],
-    timeCoefficient: 3,
-    repsCoefficient: 0
+    allowedModes: ["time"]
   },
   custom: {
     id: "custom",
     name: "自由種目",
-    allowedModes: ["time", "reps"],
-    timeCoefficient: 5,
-    repsCoefficient: 1
+    allowedModes: ["time", "reps"]
   }
 };
-const effortMultipliers = {
-  1: 0.8,
-  2: 0.9,
-  3: 1,
-  4: 1.1,
-  5: 1.2
+
+const DEFAULT_SCORING_CONFIG = {
+  dailyGoalScore: 100,
+  intensityMultipliers: {
+    1: 0.8,
+    2: 0.9,
+    3: 1,
+    4: 1.1,
+    5: 1.2
+  },
+  evaluationProfileMultipliers: {
+    beginner: 1.2,
+    standard: 1,
+    experienced: 0.85,
+    hard: 0.7
+  },
+  exerciseCoefficients: {
+    pushup: {
+      time: 10,
+      reps: 2
+    },
+    abs: {
+      time: 8,
+      reps: 1.5
+    },
+    squat: {
+      time: 15,
+      reps: 1.5
+    },
+    plank: {
+      time: 12,
+      reps: 0
+    },
+    stretch: {
+      time: 3,
+      reps: 0
+    },
+    custom: {
+      time: 5,
+      reps: 1
+    }
+  }
 };
+
 const evaluationProfiles = {
   beginner: {
     label: "初心者",
-    multiplier: 1.2,
     description: "初心者は軽い運動も評価されやすくなります。"
   },
   standard: {
     label: "標準",
-    multiplier: 1,
     description: "標準的な評価でスコアを計算します。"
   },
   experienced: {
     label: "慣れている",
-    multiplier: 0.85,
     description: "運動に慣れている人向けに、少し控えめに評価します。"
   },
   hard: {
     label: "高負荷向け",
-    multiplier: 0.7,
     description: "高負荷トレーニング向けに、厳しめに評価します。"
   }
 };
 
 let records = [];
 let appState = getDefaultState();
+let scoringConfig = loadScoringConfig();
+let isDevScoringConfigActive = localStorage.getItem(devScoringConfigStorageKey) !== null;
 let selectedMusicUrl = "";
 let timerState = "idle";
 let elapsedSeconds = 0;
@@ -181,6 +215,79 @@ function switchView(viewName) {
   });
 
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cloneScoringConfig(config) {
+  return JSON.parse(JSON.stringify(config));
+}
+
+function normalizeScoringConfig(config) {
+  const normalized = cloneScoringConfig(DEFAULT_SCORING_CONFIG);
+
+  if (!config || typeof config !== "object") {
+    return normalized;
+  }
+
+  if (Number.isFinite(Number(config.dailyGoalScore))) {
+    normalized.dailyGoalScore = Number(config.dailyGoalScore);
+  }
+
+  Object.keys(normalized.intensityMultipliers).forEach((key) => {
+    if (Number.isFinite(Number(config.intensityMultipliers?.[key]))) {
+      normalized.intensityMultipliers[key] = Number(config.intensityMultipliers[key]);
+    }
+  });
+
+  Object.keys(normalized.evaluationProfileMultipliers).forEach((key) => {
+    if (Number.isFinite(Number(config.evaluationProfileMultipliers?.[key]))) {
+      normalized.evaluationProfileMultipliers[key] = Number(config.evaluationProfileMultipliers[key]);
+    }
+  });
+
+  Object.keys(normalized.exerciseCoefficients).forEach((exerciseId) => {
+    ["time", "reps"].forEach((mode) => {
+      if (Number.isFinite(Number(config.exerciseCoefficients?.[exerciseId]?.[mode]))) {
+        normalized.exerciseCoefficients[exerciseId][mode] = Number(config.exerciseCoefficients[exerciseId][mode]);
+      }
+    });
+  });
+
+  return normalized;
+}
+
+function loadScoringConfig() {
+  const savedConfig = localStorage.getItem(devScoringConfigStorageKey);
+
+  if (!savedConfig) {
+    return cloneScoringConfig(DEFAULT_SCORING_CONFIG);
+  }
+
+  try {
+    return normalizeScoringConfig(JSON.parse(savedConfig));
+  } catch (error) {
+    return cloneScoringConfig(DEFAULT_SCORING_CONFIG);
+  }
+}
+
+function saveDevScoringConfig() {
+  localStorage.setItem(devScoringConfigStorageKey, JSON.stringify(scoringConfig));
+  isDevScoringConfigActive = true;
+}
+
+function resetDevScoringConfig() {
+  localStorage.removeItem(devScoringConfigStorageKey);
+  scoringConfig = cloneScoringConfig(DEFAULT_SCORING_CONFIG);
+  isDevScoringConfigActive = false;
+  renderScoringConfigPanel();
+  renderHistory();
+  updateAllStats();
+  updateSessionDisplay();
+  updateDebugStorageOutput();
+  showMessage("スコア設定をデフォルトに戻しました。", true);
+}
+
+function getDailyGoalScore() {
+  return Number(scoringConfig.dailyGoalScore || DEFAULT_SCORING_CONFIG.dailyGoalScore);
 }
 
 function getSelectedExercise() {
@@ -535,14 +642,14 @@ function getGoalRecommendationText(exercise, recordType, effort, projectedScore)
   const unit = getRecordUnit(recordType);
   const savedTodayScore = calculateTodayScore();
   const expectedTodayScore = savedTodayScore + Number(projectedScore || 0);
-  const remainingScore = Math.max(targetScore - expectedTodayScore, 0);
+  const remainingScore = Math.max(getDailyGoalScore() - expectedTodayScore, 0);
   const neededAmount = calculateRemainingAmountFromScore(remainingScore, exercise, recordType, effort);
 
-  if (savedTodayScore >= targetScore) {
+  if (savedTodayScore >= getDailyGoalScore()) {
     return "今日の目標は達成済みです";
   }
 
-  if (expectedTodayScore >= targetScore) {
+  if (expectedTodayScore >= getDailyGoalScore()) {
     return "この種目を記録すると目標達成です！";
   }
 
@@ -585,7 +692,7 @@ function updateSessionDisplay() {
   sessionRecordType.textContent = `${getRecordTypeText(recordType)}で記録`;
   sessionTimerDisplay.textContent = formatDuration(elapsedSeconds);
   sessionCurrentScore.textContent = `${expectedScore}`;
-  sessionTargetScore.textContent = `${targetScore}`;
+  sessionTargetScore.textContent = `${getDailyGoalScore()}`;
   sessionProjectedScore.textContent = `見込み +${projectedScore}pt`;
   sessionGoalRecommendation.textContent = getGoalRecommendationText(exercise, recordType, effort, projectedScore);
   sessionMusicFileName.textContent = getSelectedMusicFileName();
@@ -647,16 +754,11 @@ function cancelSession() {
 
 function getExerciseCoefficient(exercise, recordType) {
   const definition = getExerciseDefinition(exercise);
-
-  if (recordType === "time") {
-    return definition.timeCoefficient;
-  }
-
-  return definition.repsCoefficient;
+  return Number(scoringConfig.exerciseCoefficients[definition.id]?.[recordType] || 0);
 }
 
 function getEffortMultiplier(effort) {
-  return effortMultipliers[effort] || 1;
+  return scoringConfig.intensityMultipliers[effort] || 1;
 }
 
 function getEvaluationProfile() {
@@ -666,13 +768,13 @@ function getEvaluationProfile() {
 }
 
 function getEvaluationProfileMultiplier() {
-  return evaluationProfiles[getEvaluationProfile()].multiplier;
+  return scoringConfig.evaluationProfileMultipliers[getEvaluationProfile()] || 1;
 }
 
 function updateEvaluationProfileDisplay() {
   const profile = getEvaluationProfile();
   evaluationProfileSelect.value = profile;
-  evaluationProfileDescription.textContent = `${evaluationProfiles[profile].description} スコア倍率: ${evaluationProfiles[profile].multiplier}`;
+  evaluationProfileDescription.textContent = `${evaluationProfiles[profile].description} スコア倍率: ${getEvaluationProfileMultiplier()}`;
 }
 
 function handleEvaluationProfileChange() {
@@ -681,8 +783,146 @@ function handleEvaluationProfileChange() {
   updateEvaluationProfileDisplay();
   updateGoalRecommendation();
   updateSessionDisplay();
+  updateScorePreview();
   updateDebugStorageOutput();
   showMessage(`評価レベルを「${evaluationProfiles[getEvaluationProfile()].label}」に変更しました。`, true);
+}
+
+function renderScoringConfigPanel() {
+  const exerciseDefinitions = Object.values(EXERCISE_DEFINITIONS);
+  const intensityFields = Object.keys(DEFAULT_SCORING_CONFIG.intensityMultipliers)
+    .map((level) => `
+      <label>
+        <span>きつさ${level}</span>
+        <input class="score-config-input" type="number" step="0.05" data-config-group="intensity" data-config-key="${level}" value="${scoringConfig.intensityMultipliers[level]}">
+      </label>
+    `).join("");
+  const profileFields = Object.keys(DEFAULT_SCORING_CONFIG.evaluationProfileMultipliers)
+    .map((profile) => `
+      <label>
+        <span>${evaluationProfiles[profile].label}</span>
+        <input class="score-config-input" type="number" step="0.05" data-config-group="profile" data-config-key="${profile}" value="${scoringConfig.evaluationProfileMultipliers[profile]}">
+      </label>
+    `).join("");
+  const exerciseFields = exerciseDefinitions
+    .map((definition) => `
+      <div class="score-config-exercise">
+        <h4>${definition.name === "自由種目" ? "その他" : definition.name}</h4>
+        <label>
+          <span>時間係数</span>
+          <input class="score-config-input" type="number" step="0.1" data-config-group="exercise" data-exercise-id="${definition.id}" data-config-key="time" value="${scoringConfig.exerciseCoefficients[definition.id].time}">
+        </label>
+        <label>
+          <span>回数係数</span>
+          <input class="score-config-input" type="number" step="0.1" data-config-group="exercise" data-exercise-id="${definition.id}" data-config-key="reps" value="${scoringConfig.exerciseCoefficients[definition.id].reps}">
+        </label>
+      </div>
+    `).join("");
+
+  scoreConfigFields.innerHTML = `
+    <div class="score-config-group">
+      <h3>今日の目標スコア</h3>
+      <label>
+        <span>目標</span>
+        <input class="score-config-input" type="number" step="1" data-config-group="dailyGoalScore" value="${scoringConfig.dailyGoalScore}">
+      </label>
+    </div>
+    <div class="score-config-group">
+      <h3>きつさ倍率</h3>
+      <div class="score-config-grid">${intensityFields}</div>
+    </div>
+    <div class="score-config-group">
+      <h3>評価プロファイル倍率</h3>
+      <div class="score-config-grid">${profileFields}</div>
+    </div>
+    <div class="score-config-group">
+      <h3>種目係数</h3>
+      <div class="score-config-exercise-grid">${exerciseFields}</div>
+    </div>
+  `;
+
+  scorePreviewExercise.innerHTML = exerciseDefinitions
+    .map((definition) => `<option value="${definition.id}">${definition.name === "自由種目" ? "その他" : definition.name}</option>`)
+    .join("");
+  scorePreviewExercise.value = "squat";
+  scorePreviewProfile.value = getEvaluationProfile();
+  updateScoringConfigPanelState();
+}
+
+function updateScoringConfigPanelState() {
+  devScoringStatus.textContent = isDevScoringConfigActive
+    ? "開発者用スコア設定が有効です"
+    : "デフォルト設定";
+  devScoringStatus.classList.toggle("active", isDevScoringConfigActive);
+  scoreConfigJson.textContent = JSON.stringify(scoringConfig, null, 2);
+  updateEvaluationProfileDisplay();
+  updateScorePreview();
+}
+
+function updateScoringConfigFromInput(input) {
+  const value = Number(input.value);
+
+  if (!Number.isFinite(value)) {
+    return;
+  }
+
+  if (input.dataset.configGroup === "dailyGoalScore") {
+    scoringConfig.dailyGoalScore = value;
+  }
+
+  if (input.dataset.configGroup === "intensity") {
+    scoringConfig.intensityMultipliers[input.dataset.configKey] = value;
+  }
+
+  if (input.dataset.configGroup === "profile") {
+    scoringConfig.evaluationProfileMultipliers[input.dataset.configKey] = value;
+  }
+
+  if (input.dataset.configGroup === "exercise") {
+    scoringConfig.exerciseCoefficients[input.dataset.exerciseId][input.dataset.configKey] = value;
+  }
+
+  scoringConfig = normalizeScoringConfig(scoringConfig);
+  saveDevScoringConfig();
+  updateScoringConfigPanelState();
+  renderHistory();
+  updateAllStats();
+  updateSessionDisplay();
+  updateDebugStorageOutput();
+}
+
+function updateScorePreview() {
+  const exerciseId = scorePreviewExercise.value || "squat";
+  const definition = EXERCISE_DEFINITIONS[exerciseId] || EXERCISE_DEFINITIONS.custom;
+  const mode = scorePreviewMode.value;
+  const amount = Number(scorePreviewAmount.value || 0);
+  const intensity = scorePreviewIntensity.value;
+  const profile = scorePreviewProfile.value;
+  const coefficient = Number(scoringConfig.exerciseCoefficients[exerciseId]?.[mode] || 0);
+  const intensityMultiplier = Number(scoringConfig.intensityMultipliers[intensity] || 1);
+  const profileMultiplier = Number(scoringConfig.evaluationProfileMultipliers[profile] || 1);
+  const score = Math.round(amount * coefficient * intensityMultiplier * profileMultiplier);
+  const unit = mode === "time" ? "分" : "回";
+  const profileLabel = evaluationProfiles[profile]?.label || profile;
+
+  scorePreviewResult.innerHTML = `
+    <strong>${score}点</strong>
+    <span>${definition.name === "自由種目" ? "その他" : definition.name} / ${mode} / ${amount}${unit} / きつさ${intensity} / ${profileLabel}</span>
+    <code>${amount} × ${coefficient} × ${intensityMultiplier} × ${profileMultiplier} = ${score}</code>
+  `;
+}
+
+function copyScoringConfigJson() {
+  const jsonText = JSON.stringify(scoringConfig, null, 2);
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(jsonText)
+      .then(() => showMessage("設定JSONをコピーしました。", true))
+      .catch(() => showMessage("コピーできませんでした。JSON表示から選択してコピーしてください。", false));
+    return;
+  }
+
+  showMessage("コピー機能を使えませんでした。JSON表示から選択してコピーしてください。", false);
 }
 
 function calculateScore(exercise, recordType, amount, effort) {
@@ -705,14 +945,14 @@ function calculateRecordScore(exercise, recordType, amount, effort, savedElapsed
 }
 
 function calculateNeededAmount(exercise, recordType, effort) {
-  const remainingScore = Math.max(targetScore - calculateTodayScore(), 0);
+  const remainingScore = Math.max(getDailyGoalScore() - calculateTodayScore(), 0);
   return calculateRemainingAmountFromScore(remainingScore, exercise, recordType, effort);
 }
 
 function markGoalRewardIfNeeded() {
   const today = getTodayDateString();
 
-  if (calculateTodayScore() < targetScore) {
+  if (calculateTodayScore() < getDailyGoalScore()) {
     return false;
   }
 
@@ -732,7 +972,7 @@ function updateGoalRecommendation() {
   const effort = getSelectedEffort();
   const neededAmount = calculateNeededAmount(exercise || "自由種目", recordType, effort);
 
-  if (calculateTodayScore() >= targetScore) {
+  if (calculateTodayScore() >= getDailyGoalScore()) {
     goalRecommendation.textContent = "今日の目標は達成済みです！";
     updateSessionDisplay();
     return;
@@ -923,10 +1163,10 @@ function calculateWeeklyRank(recordedDays, weeklyScore) {
 
 function updateGoalCard() {
   const todayScore = calculateTodayScore();
-  const achievementRate = Math.min(Math.round((todayScore / targetScore) * 100), 999);
+  const achievementRate = Math.min(Math.round((todayScore / getDailyGoalScore()) * 100), 999);
   const goalClaimed = appState.claimedGoalRewardDates.includes(getTodayDateString());
 
-  targetScoreText.textContent = `${targetScore}`;
+  targetScoreText.textContent = `${getDailyGoalScore()}`;
   currentScoreText.textContent = `${todayScore}`;
   achievementRateText.textContent = `${achievementRate}%`;
   goalStatus.textContent = achievementRate >= 100
@@ -1193,8 +1433,8 @@ function createResultSummary(record, beforeLevel, levelRewards, goalMarked) {
   const afterLevel = calculateLevel(afterTotalExp);
   const levelProgress = calculateLevelProgress(afterTotalExp);
   const todayScore = calculateTodayScore();
-  const goalAchieved = todayScore >= targetScore;
-  const achievementRate = Math.min(Math.round((todayScore / targetScore) * 100), 999);
+  const goalAchieved = todayScore >= getDailyGoalScore();
+  const achievementRate = Math.min(Math.round((todayScore / getDailyGoalScore()) * 100), 999);
 
   return {
     record,
@@ -1249,7 +1489,7 @@ function showResultOverlay(result) {
   resultScore.textContent = `${record.score}`;
   resultExp.textContent = `${record.exp}`;
   resultTodayScore.textContent = `${result.todayScore}`;
-  resultTargetScore.textContent = `${targetScore}`;
+  resultTargetScore.textContent = `${getDailyGoalScore()}`;
   resultAchievementRate.textContent = `達成率 ${result.achievementRate}%`;
   resultGoalStatus.textContent = result.goalAchieved
     ? result.goalMarked ? "今日の目標達成！" : "達成済み"
@@ -1421,12 +1661,12 @@ function appendHistoryDay(parent, daySummary, shouldOpen) {
   const dayDetails = document.createElement("details");
   const dayTitle = document.createElement("summary");
   const exerciseList = document.createElement("ul");
-  const goalText = daySummary.totalScore >= targetScore ? "達成" : "挑戦中";
+  const goalText = daySummary.totalScore >= getDailyGoalScore() ? "達成" : "挑戦中";
   const exerciseCount = daySummary.exerciseNames.size;
 
   dayItem.className = "history-day-item";
   dayDetails.open = shouldOpen;
-  dayTitle.textContent = `${formatHistoryDate(daySummary.date)}　${daySummary.totalScore} / ${targetScore}pt　${goalText}　${exerciseCount}種目`;
+  dayTitle.textContent = `${formatHistoryDate(daySummary.date)}　${daySummary.totalScore} / ${getDailyGoalScore()}pt　${goalText}　${exerciseCount}種目`;
   exerciseList.className = "history-exercise-list";
 
   Object.values(daySummary.exercises)
@@ -1614,7 +1854,8 @@ function updateDebugStorageOutput() {
 
   debugStorageOutput.textContent = JSON.stringify({
     trelog_records: JSON.parse(localStorage.getItem(storageKey) || "[]"),
-    trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null")
+    trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null"),
+    trelog_dev_scoring_config: JSON.parse(localStorage.getItem(devScoringConfigStorageKey) || "null")
   }, null, 2);
 }
 
@@ -1647,6 +1888,7 @@ function initializeApp() {
   saveState();
   todayLabel.textContent = getTodayText();
   setupDebugPanel();
+  renderScoringConfigPanel();
   updateEvaluationProfileDisplay();
   handleExerciseChange();
   updateRecordUnit();
@@ -1663,6 +1905,18 @@ musicPlayer.addEventListener("play", updateSessionDisplay);
 musicPlayer.addEventListener("pause", updateSessionDisplay);
 playMusicButton.addEventListener("click", playSelectedMusic);
 evaluationProfileSelect.addEventListener("change", handleEvaluationProfileChange);
+scoreConfigFields.addEventListener("input", (event) => {
+  if (event.target.classList.contains("score-config-input")) {
+    updateScoringConfigFromInput(event.target);
+  }
+});
+scorePreviewExercise.addEventListener("change", updateScorePreview);
+scorePreviewMode.addEventListener("change", updateScorePreview);
+scorePreviewAmount.addEventListener("input", updateScorePreview);
+scorePreviewIntensity.addEventListener("change", updateScorePreview);
+scorePreviewProfile.addEventListener("change", updateScorePreview);
+copyScoreConfigButton.addEventListener("click", copyScoringConfigJson);
+resetScoreConfigButton.addEventListener("click", resetDevScoringConfig);
 homeStartRecordButton.addEventListener("click", () => {
   switchView("record");
 });

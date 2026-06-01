@@ -213,6 +213,60 @@
       </p>
     </section>
 
+    <section class="panel score-config-panel" aria-labelledby="score-config-title">
+      <div class="section-heading">
+        <h2 id="score-config-title">スコア調整</h2>
+        <span id="dev-scoring-status" class="dev-scoring-status">デフォルト設定</span>
+      </div>
+      <p class="settings-description">
+        開発中だけ使う一時設定です。変更内容はこのブラウザのlocalStorageに保存されます。
+      </p>
+
+      <div id="score-config-fields" class="score-config-fields"></div>
+
+      <div class="score-preview">
+        <h3>テスト計算</h3>
+        <label class="field-label" for="score-preview-exercise">種目</label>
+        <select id="score-preview-exercise" class="select-field"></select>
+
+        <label class="field-label" for="score-preview-mode">記録方式</label>
+        <select id="score-preview-mode" class="select-field">
+          <option value="time">time / 分</option>
+          <option value="reps">reps / 回</option>
+        </select>
+
+        <label class="field-label" for="score-preview-amount">値</label>
+        <input id="score-preview-amount" class="score-config-input" type="number" min="0" step="0.1" value="5">
+
+        <label class="field-label" for="score-preview-intensity">きつさ</label>
+        <select id="score-preview-intensity" class="select-field">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+
+        <label class="field-label" for="score-preview-profile">評価プロファイル</label>
+        <select id="score-preview-profile" class="select-field">
+          <option value="beginner">初心者</option>
+          <option value="standard" selected>標準</option>
+          <option value="experienced">慣れている</option>
+          <option value="hard">高負荷向け</option>
+        </select>
+
+        <div id="score-preview-result" class="score-preview-result"></div>
+      </div>
+
+      <div class="score-config-json-area">
+        <div class="debug-actions">
+          <button id="copy-score-config-button" type="button">設定JSONをコピー</button>
+          <button id="reset-score-config-button" type="button">デフォルトに戻す</button>
+        </div>
+        <pre id="score-config-json"></pre>
+      </div>
+    </section>
+
     <section id="debug-panel" class="debug-panel">
       <details>
         <summary>開発用デバッグ</summary>
