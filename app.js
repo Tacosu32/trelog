@@ -1,6 +1,6 @@
 const DEBUG_MODE = true;
-const APP_VERSION = "0.5.0-dev";
-const APP_BUILD_LABEL = "continuity-calendar-2026-06-09";
+const APP_VERSION = "0.5.1-dev";
+const APP_BUILD_LABEL = "home-trainer-hero-2026-06-10";
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
@@ -235,6 +235,22 @@ const TRAINER_LINES = {
   projectedGoalReached: () => "このまま記録すると今日の目標達成！最後まで一緒にいこう。",
   highIntensity: () => "今日はしっかり追い込む日だね。きつい分、休憩も大事にしよう。",
   lowIntensity: () => "軽めでも続けてるのがえらいよ。今日の流れを守ろう。"
+};
+
+const HOME_TRAINER_LINES = {
+  recentRestTicketUsed: () => "休憩チケットで継続を守った日があるよ。無理しすぎず、今日は軽めにいこう。",
+  goalReached: () => "今日の目標達成済み！ちゃんと積み上げられてるね。あとは気持ちよく締めよう。",
+  almostGoal: () => "あと少しで今日の目標に届くよ。もう1セットいけそう？",
+  noTodayRecordNight: () => "今日の分、まだ間に合うよ。短くても記録しておこう？",
+  noTodayRecord: () => "今日はまだ記録がないみたい。まずは1セットだけでもどう？",
+  noRestTickets: () => "休憩チケットが0枚だよ。今日は短めでいいから、継続を守りにいこう。",
+  lowRestTickets: () => "休憩チケットが少なめだよ。無理なく動いて、安心できる余裕を戻そう。",
+  streakProtected: ({ streakDays }) => `${streakDays}日連続、カレンダーでも守れてるよ。この流れ、今日も少しだけつなごう。`,
+  streakGrowing: ({ streakDays }) => `${streakDays}日連続で伸びてるよ。積み上げが見えてきたね。`,
+  morning: () => "おはよう！今日は軽めでもいいから、まずは体を動かしてみよ？",
+  afternoon: () => "ここで少し動けたら、午後もいい感じに進められそうだよ。",
+  night: () => "夜でも短い記録ならいけるよ。今日の自分に小さく丸をつけよう。",
+  default: () => "準備できたら、好きな音楽を流して始めよう。今日は軽めでも続けたら勝ちだよ。"
 };
 
 let records = [];
@@ -819,6 +835,106 @@ function getTrainerLine(context) {
   }
 
   return TRAINER_LINES.sessionStart(context);
+}
+
+function getRecentRestTicketEvent(dayRange = 2) {
+  const today = getTodayDateString();
+  const fromDate = addDays(today, -dayRange);
+
+  return appState.restTicketEvents
+    .filter((event) => event.type === "auto-used" && event.date >= fromDate && event.date <= today)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))[0] || null;
+}
+
+function getCalendarStatus() {
+  const today = getTodayDateString();
+  const yesterday = addDays(today, -1);
+  const continuityDates = getContinuityDateSet();
+
+  return {
+    todayProtected: continuityDates.has(today),
+    yesterdayProtected: continuityDates.has(yesterday),
+    streakProtected: continuityDates.has(today) || continuityDates.has(yesterday)
+  };
+}
+
+function getHomeTrainerLine(context) {
+  if (context.recentRestTicketUsed) {
+    return HOME_TRAINER_LINES.recentRestTicketUsed(context);
+  }
+
+  if (context.goalReached) {
+    return HOME_TRAINER_LINES.goalReached(context);
+  }
+
+  if (context.todayScore > 0 && context.todayScore >= context.dailyGoalScore * 0.75) {
+    return HOME_TRAINER_LINES.almostGoal(context);
+  }
+
+  if (context.restTickets <= 0) {
+    return HOME_TRAINER_LINES.noRestTickets(context);
+  }
+
+  if (context.restTickets <= 1) {
+    return HOME_TRAINER_LINES.lowRestTickets(context);
+  }
+
+  if (!context.hasTodayRecord) {
+    if (context.currentHour < 11) {
+      return HOME_TRAINER_LINES.morning(context);
+    }
+
+    if (context.currentHour < 18) {
+      return HOME_TRAINER_LINES.afternoon(context);
+    }
+
+    return HOME_TRAINER_LINES.noTodayRecordNight(context);
+  }
+
+  if (context.streakDays >= 2 && context.calendarStatus.streakProtected) {
+    return HOME_TRAINER_LINES.streakProtected(context);
+  }
+
+  if (context.streakDays >= 1) {
+    return HOME_TRAINER_LINES.streakGrowing(context);
+  }
+
+  if (context.currentHour < 11) {
+    return HOME_TRAINER_LINES.morning(context);
+  }
+
+  if (context.currentHour < 18) {
+    return HOME_TRAINER_LINES.afternoon(context);
+  }
+
+  if (context.currentHour >= 18) {
+    return HOME_TRAINER_LINES.night(context);
+  }
+
+  return HOME_TRAINER_LINES.default(context);
+}
+
+function buildHomeTrainerContext() {
+  const today = getTodayDateString();
+  const todayScore = calculateTodayScore();
+  const dailyGoalScore = getDailyGoalScore();
+  const hasTodayRecord = records.some((record) => record.date === today);
+
+  return {
+    currentHour: new Date().getHours(),
+    todayScore,
+    dailyGoalScore,
+    goalReached: todayScore >= dailyGoalScore,
+    hasTodayRecord,
+    streakDays: calculateStreakDays(),
+    restTickets: appState.restTickets,
+    recentRestTicketUsed: Boolean(getRecentRestTicketEvent(2)),
+    calendarStatus: getCalendarStatus()
+  };
+}
+
+function updateHomeTrainerComment() {
+  trainerComment.textContent = getHomeTrainerLine(buildHomeTrainerContext());
 }
 
 function updateSessionTrainerLine(projectedGoalReached) {
@@ -1554,7 +1670,6 @@ function consumeRestTicketsForMissedDays() {
     const latestUsedDate = missedRestDates[missedRestDates.length - 1];
     const dateLabel = latestUsedDate === yesterday ? "昨日" : latestUsedDate;
     updateTrainerComment(`${dateLabel}は休憩チケットで継続を守ったよ。今日は少しだけ動いてみよう！`);
-    setTrainerImage(homeTrainerImage, "rest");
   }
 
   return missedRestDates;
@@ -1663,6 +1778,7 @@ function updateDashboard() {
 function updateAllStats() {
   updateGoalCard();
   updateDashboard();
+  updateHomeTrainerComment();
   renderRestDates();
   renderRecentRestEvent();
   renderContinuityCalendar();

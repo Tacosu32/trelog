@@ -1,5 +1,27 @@
 # 04_FUNCTIONS
 
+## 2026-06-09 追記: ホーム用トレーナーコメント
+
+### getRecentRestTicketEvent(dayRange)
+
+今日から指定日数前までの `restTicketEvents` を確認し、`auto-used` の直近イベントを返す。ホームコメントで休憩チケット自動消費に触れるかどうかの判定に使う。
+
+### getCalendarStatus()
+
+今日または昨日が、記録日または休憩日として継続カレンダー上で守られているかを返す。
+
+### getHomeTrainerLine(context)
+
+`HOME_TRAINER_LINES` から、ホーム画面用のトレーナーセリフを状態に応じて返す。`currentHour`、`todayScore`、`dailyGoalScore`、`goalReached`、`hasTodayRecord`、`streakDays`、`restTickets`、`recentRestTicketUsed`、`calendarStatus` を参照する。
+
+### buildHomeTrainerContext()
+
+ホームコメントに必要な現在状態をまとめる。今日のスコア、目標スコア、記録有無、連続日数、休憩チケット枚数、直近の休憩チケット自動消費、カレンダー継続状態を含む。
+
+### updateHomeTrainerComment()
+
+`buildHomeTrainerContext()` と `getHomeTrainerLine()` を使い、ホーム画面のトレーナーコメントを更新する。
+
 ## 2026-06-02 追記: バージョン表示と更新操作
 
 ### getAppVersionText()

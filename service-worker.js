@@ -1,4 +1,4 @@
-const CACHE_NAME = "trelog-cache-v0.5.0-dev-continuity-calendar-2026-06-09";
+const CACHE_NAME = "trelog-cache-v0.5.1-dev-home-trainer-hero-2026-06-10";
 
 const CORE_ASSETS = [
   "./index.html",

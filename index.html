@@ -19,6 +19,21 @@
       <p id="today-label" class="today-label">α版</p>
     </header>
 
+    <section class="trainer-area home-trainer-area" aria-label="トレーナーヒーロー">
+      <div class="trainer-visual home-trainer-visual" aria-hidden="true">
+        <img id="home-trainer-image" class="trainer-image hidden" alt="">
+        <div class="trainer-face">
+          <span class="trainer-eye"></span>
+          <span class="trainer-eye"></span>
+          <span class="trainer-smile"></span>
+        </div>
+      </div>
+      <div class="speech-bubble home-speech-bubble">
+        <span class="home-trainer-label">今日の案内役</span>
+        <p id="trainer-comment">準備できたら、好きな音楽を流して始めよう。今日は軽めでも続けたら勝ちだよ。</p>
+      </div>
+    </section>
+
     <section class="dashboard" aria-label="ダッシュボード">
       <div class="status-card status-card-large">
         <span>連続日数</span>
@@ -33,13 +48,13 @@
         <strong id="total-exp">0</strong>
       </div>
       <div class="status-card">
+        <span>休憩チケット</span>
+        <strong id="rest-tickets">2枚</strong>
+      </div>
+      <div class="status-card">
         <span>今週ランク</span>
         <strong id="weekly-rank">D</strong>
         <small id="weekly-rank-detail">0日 / 0pt</small>
-      </div>
-      <div class="status-card">
-        <span>休憩チケット</span>
-        <strong id="rest-tickets">2枚</strong>
       </div>
     </section>
 
@@ -53,42 +68,6 @@
       </div>
       <div class="level-progress-bar" aria-hidden="true">
         <span id="level-progress-fill"></span>
-      </div>
-    </section>
-
-    <section class="panel calendar-panel" aria-labelledby="calendar-title">
-      <div class="section-heading calendar-heading">
-        <h2 id="calendar-title">カレンダー</h2>
-        <div class="calendar-controls">
-          <button id="calendar-prev-month" type="button" aria-label="前月">‹</button>
-          <span id="calendar-month-label">----</span>
-          <button id="calendar-next-month" type="button" aria-label="次月">›</button>
-        </div>
-      </div>
-      <p id="recent-rest-event" class="recent-rest-event">休憩チケットの使用履歴はまだありません。</p>
-      <div class="calendar-weekdays" aria-hidden="true">
-        <span>月</span>
-        <span>火</span>
-        <span>水</span>
-        <span>木</span>
-        <span>金</span>
-        <span>土</span>
-        <span>日</span>
-      </div>
-      <div id="continuity-calendar" class="continuity-calendar" aria-label="継続カレンダー"></div>
-    </section>
-
-    <section class="trainer-area" aria-label="トレーナー">
-      <div class="trainer-visual" aria-hidden="true">
-        <img id="home-trainer-image" class="trainer-image hidden" alt="">
-        <div class="trainer-face">
-          <span class="trainer-eye"></span>
-          <span class="trainer-eye"></span>
-          <span class="trainer-smile"></span>
-        </div>
-      </div>
-      <div class="speech-bubble">
-        <p id="trainer-comment">準備できたら、好きな音楽を流して始めよう。今日は軽めでも続けたら勝ちだよ。</p>
       </div>
     </section>
 
@@ -115,6 +94,28 @@
         <span>おすすめ目安</span>
         <p id="goal-recommendation">腕立て10回 + ストレッチ5分</p>
       </div>
+    </section>
+
+    <section class="panel calendar-panel" aria-labelledby="calendar-title">
+      <div class="section-heading calendar-heading">
+        <h2 id="calendar-title">カレンダー</h2>
+        <div class="calendar-controls">
+          <button id="calendar-prev-month" type="button" aria-label="前月">‹</button>
+          <span id="calendar-month-label">----</span>
+          <button id="calendar-next-month" type="button" aria-label="次月">›</button>
+        </div>
+      </div>
+      <p id="recent-rest-event" class="recent-rest-event">休憩チケットの使用履歴はまだありません。</p>
+      <div class="calendar-weekdays" aria-hidden="true">
+        <span>月</span>
+        <span>火</span>
+        <span>水</span>
+        <span>木</span>
+        <span>金</span>
+        <span>土</span>
+        <span>日</span>
+      </div>
+      <div id="continuity-calendar" class="continuity-calendar" aria-label="継続カレンダー"></div>
     </section>
 
     <div class="home-action">

@@ -296,6 +296,14 @@ h2 {
   border-radius: 8px;
 }
 
+.home-trainer-area {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  margin-top: 12px;
+  padding: 16px;
+  background: linear-gradient(160deg, #ffffff 0%, #e8f7f2 52%, #fff3df 100%);
+}
+
 .trainer-visual {
   position: relative;
   height: 122px;
@@ -306,12 +314,22 @@ h2 {
   overflow: hidden;
 }
 
+.home-trainer-visual {
+  width: min(100%, 220px);
+  height: 168px;
+  background: linear-gradient(160deg, #dff4ef 0%, #fff6df 100%);
+}
+
 .trainer-image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.home-trainer-visual .trainer-image {
+  object-fit: contain;
 }
 
 .trainer-image.hidden {
@@ -389,6 +407,35 @@ h2 {
   font-weight: 700;
 }
 
+.home-speech-bubble {
+  width: 100%;
+  padding: 16px;
+  font-size: 1rem;
+}
+
+.home-trainer-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--soft-green);
+  color: var(--secondary);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.home-speech-bubble::before {
+  left: 50%;
+  top: -8px;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #fff8f0;
+  border-left: 8px solid transparent;
+  border-top: 0;
+  transform: translateX(-50%);
+}
+
 .speech-bubble::before {
   content: "";
   position: absolute;
@@ -397,6 +444,28 @@ h2 {
   border-top: 8px solid transparent;
   border-bottom: 8px solid transparent;
   border-right: 8px solid #fff8f0;
+}
+
+@media (min-width: 420px) {
+  .home-trainer-area {
+    grid-template-columns: 154px 1fr;
+    justify-items: stretch;
+  }
+
+  .home-trainer-visual {
+    width: 100%;
+    height: 178px;
+  }
+
+  .home-speech-bubble::before {
+    left: -8px;
+    top: 38px;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #fff8f0;
+    border-left: 0;
+    transform: none;
+  }
 }
 
 .panel {
@@ -1723,8 +1792,19 @@ input[type="radio"] {
     grid-template-columns: 96px 1fr;
   }
 
+  .home-trainer-area {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
   .trainer-visual {
     height: 112px;
+  }
+
+  .home-trainer-visual {
+    width: min(100%, 204px);
+    height: 152px;
   }
 
   .speech-bubble {
