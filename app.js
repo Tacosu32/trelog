@@ -1,9 +1,10 @@
 const DEBUG_MODE = true;
-const APP_VERSION = "0.5.1-dev";
-const APP_BUILD_LABEL = "home-trainer-hero-2026-06-10";
+const APP_VERSION = "0.6.0-dev";
+const APP_BUILD_LABEL = "scoring-counseling-2026-06-10";
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
+const counselingStorageKey = "trelog_counseling";
 const userAssetsDbName = "trelog_user_assets";
 const trainerImagesStoreName = "trainer_images";
 const legacyCustomTrainerImageKey = "customTrainerImage";
@@ -72,6 +73,18 @@ const scorePreviewResult = document.getElementById("score-preview-result");
 const scoreConfigJson = document.getElementById("score-config-json");
 const copyScoreConfigButton = document.getElementById("copy-score-config-button");
 const resetScoreConfigButton = document.getElementById("reset-score-config-button");
+const counselingForm = document.getElementById("counseling-form");
+const counselingExperience = document.getElementById("counseling-experience");
+const counselingGoal = document.getElementById("counseling-goal");
+const counselingWeeklyDays = document.getElementById("counseling-weekly-days");
+const counselingSessionLength = document.getElementById("counseling-session-length");
+const counselingStrictness = document.getElementById("counseling-strictness");
+const generateCounselingButton = document.getElementById("generate-counseling-button");
+const applyCounselingButton = document.getElementById("apply-counseling-button");
+const discardCounselingButton = document.getElementById("discard-counseling-button");
+const resetCounselingDefaultButton = document.getElementById("reset-counseling-default-button");
+const counselingResult = document.getElementById("counseling-result");
+const counselingStatus = document.getElementById("counseling-status");
 const customTrainerStatus = document.getElementById("custom-trainer-status");
 const customTrainerSlotElements = document.querySelectorAll("[data-trainer-slot]");
 const deleteAllCustomTrainersButton = document.getElementById("delete-all-custom-trainers-button");
@@ -224,6 +237,37 @@ const evaluationProfiles = {
     description: "高負荷トレーニング向けに、厳しめに評価します。"
   }
 };
+const COUNSELING_GOAL_LABELS = {
+  continuity: "継続重視",
+  diet: "ダイエット",
+  strength: "筋力アップ",
+  stamina: "体力作り",
+  habit: "軽い習慣化"
+};
+const COUNSELING_WEEKLY_DAY_LABELS = {
+  "1-2": "1〜2日",
+  "3-4": "3〜4日",
+  "5+": "5日以上"
+};
+const COUNSELING_SESSION_LENGTH_LABELS = {
+  3: "3分",
+  5: "5分",
+  10: "10分",
+  15: "15分以上"
+};
+const COUNSELING_STRICTNESS_LABELS = {
+  loose: "ゆるめに評価してほしい",
+  standard: "標準",
+  strict: "厳しめに評価してほしい"
+};
+const COUNSELING_EXERCISE_IDS = ["pushup", "abs", "squat", "plank", "stretch"];
+const COUNSELING_GUIDE_AMOUNTS = {
+  pushup: { time: 5, reps: 20 },
+  abs: { time: 5, reps: 30 },
+  squat: { time: 5, reps: 60 },
+  plank: { time: 1, reps: 0 },
+  stretch: { time: 5, reps: 0 }
+};
 const TRAINER_LINES = {
   sessionStart: ({ exerciseName }) => `${exerciseName || "この種目"}、いこう。タイマーは見てるから、今は動きに集中してね。`,
   elapsed10: () => "いい入りだよ。そのまま呼吸を止めずに続けよう。",
@@ -265,6 +309,7 @@ let timerId = null;
 let sessionLineOverride = "";
 let customTrainerImages = {};
 let pendingCustomTrainerFiles = {};
+let currentCounselingRecommendation = null;
 const trainerImagePaths = {
   localPrivate: "assets/trainer/local/trainer_private.png",
   default: "assets/trainer/public/trainer_default.png",
@@ -1332,6 +1377,586 @@ function handleEvaluationProfileChange() {
   updateScorePreview();
   updateDebugStorageOutput();
   showMessage(`評価レベルを「${evaluationProfiles[getEvaluationProfile()].label}」に変更しました。`, true);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function roundConfigNumber(value, digits = 2) {
+  return Number(Number(value).toFixed(digits));
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getCheckedCounselingMenuValues(name) {
+  return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`))
+    .map((input) => input.value)
+    .filter((exerciseId) => COUNSELING_EXERCISE_IDS.includes(exerciseId));
+}
+
+function buildCounselingAnswers() {
+  return {
+    experience: counselingExperience.value,
+    goal: counselingGoal.value,
+    weeklyDays: counselingWeeklyDays.value,
+    sessionLength: counselingSessionLength.value,
+    strictness: counselingStrictness.value,
+    goodMenus: getCheckedCounselingMenuValues("counseling-good-menu"),
+    weakMenus: getCheckedCounselingMenuValues("counseling-weak-menu")
+  };
+}
+
+function getDefaultCounselingAnswers() {
+  return {
+    experience: "beginner",
+    goal: "continuity",
+    weeklyDays: "3-4",
+    sessionLength: "5",
+    strictness: "standard",
+    goodMenus: [],
+    weakMenus: []
+  };
+}
+
+function setCounselingFormAnswers(answers = getDefaultCounselingAnswers()) {
+  counselingExperience.value = answers.experience || "beginner";
+  counselingGoal.value = answers.goal || "continuity";
+  counselingWeeklyDays.value = answers.weeklyDays || "3-4";
+  counselingSessionLength.value = answers.sessionLength || "5";
+  counselingStrictness.value = answers.strictness || "standard";
+
+  document.querySelectorAll('input[name="counseling-good-menu"], input[name="counseling-weak-menu"]').forEach((input) => {
+    const values = input.name === "counseling-good-menu"
+      ? answers.goodMenus || []
+      : answers.weakMenus || [];
+    input.checked = values.includes(input.value);
+  });
+}
+
+function shiftEvaluationProfile(profile, direction) {
+  const profileOrder = ["beginner", "standard", "experienced", "hard"];
+  const currentIndex = profileOrder.indexOf(profile);
+  const safeIndex = currentIndex === -1 ? 1 : currentIndex;
+  return profileOrder[clampNumber(safeIndex + direction, 0, profileOrder.length - 1)];
+}
+
+function chooseCounselingProfile(answers) {
+  let profile = evaluationProfiles[answers.experience] ? answers.experience : "standard";
+
+  if (answers.goal === "continuity" || answers.goal === "habit") {
+    profile = shiftEvaluationProfile(profile, -1);
+  }
+
+  if (answers.goal === "strength") {
+    profile = shiftEvaluationProfile(profile, 1);
+  }
+
+  if (answers.strictness === "loose") {
+    profile = shiftEvaluationProfile(profile, -1);
+  }
+
+  if (answers.strictness === "strict") {
+    profile = shiftEvaluationProfile(profile, 1);
+  }
+
+  return profile;
+}
+
+function calculateCounselingDailyGoal(answers) {
+  const sessionGoalMap = {
+    3: 70,
+    5: 100,
+    10: 150,
+    15: 200
+  };
+  const weeklyAdjustments = {
+    "1-2": -10,
+    "3-4": 0,
+    "5+": 20
+  };
+  const goalAdjustments = {
+    continuity: -5,
+    diet: 10,
+    strength: 20,
+    stamina: 10,
+    habit: -20
+  };
+  const strictnessAdjustments = {
+    loose: -5,
+    standard: 0,
+    strict: 10
+  };
+  const baseGoal = sessionGoalMap[answers.sessionLength] || 100;
+  const rawGoal = baseGoal
+    + (weeklyAdjustments[answers.weeklyDays] || 0)
+    + (goalAdjustments[answers.goal] || 0)
+    + (strictnessAdjustments[answers.strictness] || 0);
+
+  return Math.round(clampNumber(rawGoal, 60, 240));
+}
+
+function getCounselingCoefficientScale(answers) {
+  const experienceScale = {
+    beginner: 1.1,
+    standard: 1,
+    experienced: 0.9,
+    hard: 0.78
+  };
+  const goalScale = {
+    continuity: 1.15,
+    diet: 1.05,
+    strength: 0.95,
+    stamina: 1,
+    habit: 1.2
+  };
+  const strictnessScale = {
+    loose: 1.12,
+    standard: 1,
+    strict: 0.9
+  };
+  const shortSessionScale = answers.sessionLength === "3" ? 1.08 : 1;
+
+  return (experienceScale[answers.experience] || 1)
+    * (goalScale[answers.goal] || 1)
+    * (strictnessScale[answers.strictness] || 1)
+    * shortSessionScale;
+}
+
+function buildRecommendationConfig(answers, profile) {
+  const recommendedConfig = cloneScoringConfig(DEFAULT_SCORING_CONFIG);
+  const coefficientScale = getCounselingCoefficientScale(answers);
+
+  recommendedConfig.dailyGoalScore = calculateCounselingDailyGoal(answers);
+
+  Object.keys(recommendedConfig.exerciseCoefficients).forEach((exerciseId) => {
+    let exerciseScale = coefficientScale;
+
+    if (answers.goodMenus.includes(exerciseId)) {
+      exerciseScale *= 0.92;
+    }
+
+    if (answers.weakMenus.includes(exerciseId)) {
+      exerciseScale *= 1.16;
+    }
+
+    recommendedConfig.exerciseCoefficients[exerciseId].time = roundConfigNumber(
+      DEFAULT_SCORING_CONFIG.exerciseCoefficients[exerciseId].time * exerciseScale,
+      1
+    );
+    recommendedConfig.exerciseCoefficients[exerciseId].reps = roundConfigNumber(
+      DEFAULT_SCORING_CONFIG.exerciseCoefficients[exerciseId].reps * exerciseScale,
+      1
+    );
+  });
+
+  if (profile === "beginner" && answers.sessionLength === "5") {
+    const squatAdjustment = (answers.weakMenus.includes("squat") ? 1.12 : 1)
+      * (answers.goodMenus.includes("squat") ? 0.92 : 1);
+    recommendedConfig.exerciseCoefficients.squat.time = roundConfigNumber(16.7 * squatAdjustment, 1);
+    recommendedConfig.exerciseCoefficients.squat.reps = roundConfigNumber(1.4 * squatAdjustment, 1);
+  }
+
+  if (answers.strictness === "loose") {
+    recommendedConfig.intensityMultipliers = { 1: 0.9, 2: 1, 3: 1.08, 4: 1.16, 5: 1.25 };
+  }
+
+  if (answers.strictness === "strict") {
+    recommendedConfig.intensityMultipliers = { 1: 0.7, 2: 0.85, 3: 1, 4: 1.15, 5: 1.35 };
+  }
+
+  return normalizeScoringConfig(recommendedConfig);
+}
+
+function calculateRecommendationScore(config, exerciseId, mode, amount, intensity = 3, profile = "standard") {
+  const coefficient = Number(config.exerciseCoefficients[exerciseId]?.[mode] || 0);
+  const intensityMultiplier = Number(config.intensityMultipliers[intensity] || 1);
+  const profileMultiplier = Number(config.evaluationProfileMultipliers[profile] || 1);
+  return Math.round(Number(amount) * coefficient * intensityMultiplier * profileMultiplier);
+}
+
+function getCounselingTimeLabel(exerciseId, minutes) {
+  if (exerciseId === "plank" && minutes === 1) {
+    return "60秒";
+  }
+
+  return `${minutes}分`;
+}
+
+function buildRecommendationGuides(config, profile) {
+  return COUNSELING_EXERCISE_IDS.map((exerciseId) => {
+    const definition = EXERCISE_DEFINITIONS[exerciseId];
+    const amounts = COUNSELING_GUIDE_AMOUNTS[exerciseId];
+    const timeScore = amounts.time > 0
+      ? calculateRecommendationScore(config, exerciseId, "time", amounts.time, 3, profile)
+      : 0;
+    const repsScore = amounts.reps > 0
+      ? calculateRecommendationScore(config, exerciseId, "reps", amounts.reps, 3, profile)
+      : 0;
+    const timeCoefficient = Number(config.exerciseCoefficients[exerciseId].time || 0);
+    const repsCoefficient = Number(config.exerciseCoefficients[exerciseId].reps || 0);
+    const profileMultiplier = Number(config.evaluationProfileMultipliers[profile] || 1);
+    const intensityMultiplier = Number(config.intensityMultipliers[3] || 1);
+    const timeForGoal = timeCoefficient > 0
+      ? Math.ceil(100 / (timeCoefficient * intensityMultiplier * profileMultiplier))
+      : null;
+    const repsForGoal = repsCoefficient > 0
+      ? Math.ceil(100 / (repsCoefficient * intensityMultiplier * profileMultiplier))
+      : null;
+
+    return {
+      exerciseId,
+      exerciseName: definition.name,
+      timeText: amounts.time > 0 ? `${getCounselingTimeLabel(exerciseId, amounts.time)}で約${timeScore}pt` : "",
+      repsText: amounts.reps > 0 ? `${amounts.reps}回で約${repsScore}pt` : "",
+      goalText: [
+        timeForGoal ? `${timeForGoal}分で約100pt` : "",
+        repsForGoal ? `${repsForGoal}回で約100pt` : ""
+      ].filter(Boolean).join(" / ")
+    };
+  });
+}
+
+function buildCounselingTrainerComment(answers, profile) {
+  if (answers.goal === "continuity" || answers.goal === "habit") {
+    return "まずは続けやすさ重視で調整したよ。慣れてきたら少しずつ厳しめにしていこう！";
+  }
+
+  if (answers.goal === "strength" || profile === "hard") {
+    return "しっかり積み上げたい方向けに、少し手応えが出る設定にしたよ。フォーム優先でいこう！";
+  }
+
+  if (answers.goal === "diet") {
+    return "消費量を意識しつつ、毎日戻ってきやすい点数にしたよ。短めでも記録して流れを作ろう！";
+  }
+
+  return "体力作りに向けて、無理なく伸ばせる設定にしたよ。今日はできる範囲から始めよう！";
+}
+
+function generateScoringRecommendation(answers) {
+  const normalizedAnswers = { ...getDefaultCounselingAnswers(), ...answers };
+  const profile = chooseCounselingProfile(normalizedAnswers);
+  const config = buildRecommendationConfig(normalizedAnswers, profile);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    answers: normalizedAnswers,
+    evaluationProfile: profile,
+    dailyGoalScore: config.dailyGoalScore,
+    intensityMultipliers: cloneScoringConfig(config.intensityMultipliers),
+    evaluationProfileMultipliers: cloneScoringConfig(config.evaluationProfileMultipliers),
+    exerciseCoefficients: cloneScoringConfig(config.exerciseCoefficients),
+    scoringConfig: config,
+    guides: buildRecommendationGuides(config, profile),
+    trainerComment: buildCounselingTrainerComment(normalizedAnswers, profile)
+  };
+}
+
+function normalizeScoringRecommendation(recommendation) {
+  if (!recommendation || typeof recommendation !== "object") {
+    return null;
+  }
+
+  const answers = { ...getDefaultCounselingAnswers(), ...(recommendation.answers || {}) };
+  const config = normalizeScoringConfig(recommendation.scoringConfig || {
+    dailyGoalScore: recommendation.dailyGoalScore,
+    intensityMultipliers: recommendation.intensityMultipliers,
+    evaluationProfileMultipliers: recommendation.evaluationProfileMultipliers,
+    exerciseCoefficients: recommendation.exerciseCoefficients
+  });
+  const profile = evaluationProfiles[recommendation.evaluationProfile]
+    ? recommendation.evaluationProfile
+    : chooseCounselingProfile(answers);
+
+  return {
+    generatedAt: recommendation.generatedAt || new Date().toISOString(),
+    answers,
+    evaluationProfile: profile,
+    dailyGoalScore: config.dailyGoalScore,
+    intensityMultipliers: cloneScoringConfig(config.intensityMultipliers),
+    evaluationProfileMultipliers: cloneScoringConfig(config.evaluationProfileMultipliers),
+    exerciseCoefficients: cloneScoringConfig(config.exerciseCoefficients),
+    scoringConfig: config,
+    guides: Array.isArray(recommendation.guides) ? recommendation.guides : buildRecommendationGuides(config, profile),
+    trainerComment: recommendation.trainerComment || buildCounselingTrainerComment(answers, profile)
+  };
+}
+
+function loadCounselingState() {
+  const savedState = localStorage.getItem(counselingStorageKey);
+
+  if (!savedState) {
+    return null;
+  }
+
+  try {
+    const parsedState = JSON.parse(savedState);
+    return {
+      answers: parsedState.answers ? { ...getDefaultCounselingAnswers(), ...parsedState.answers } : null,
+      scoringRecommendation: normalizeScoringRecommendation(parsedState.scoringRecommendation),
+      appliedScoringConfig: parsedState.appliedScoringConfig
+        ? normalizeScoringConfig(parsedState.appliedScoringConfig)
+        : null,
+      updatedAt: parsedState.updatedAt || null
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveCounselingState(state) {
+  localStorage.setItem(counselingStorageKey, JSON.stringify({
+    answers: state.answers || null,
+    scoringRecommendation: state.scoringRecommendation || null,
+    appliedScoringConfig: state.appliedScoringConfig || null,
+    updatedAt: new Date().toISOString()
+  }));
+}
+
+function createRecommendationFromEditedInputs() {
+  const recommendation = normalizeScoringRecommendation(currentCounselingRecommendation);
+
+  if (!recommendation || !counselingResult) {
+    return null;
+  }
+
+  const editedConfig = cloneScoringConfig(recommendation.scoringConfig);
+  const profileInput = counselingResult.querySelector("[data-counseling-profile]");
+  const profile = evaluationProfiles[profileInput?.value] ? profileInput.value : recommendation.evaluationProfile;
+
+  counselingResult.querySelectorAll("[data-counseling-config]").forEach((input) => {
+    const value = Number(input.value);
+
+    if (!Number.isFinite(value)) {
+      return;
+    }
+
+    if (input.dataset.counselingConfig === "dailyGoalScore") {
+      editedConfig.dailyGoalScore = value;
+    }
+
+    if (input.dataset.counselingConfig === "intensity") {
+      editedConfig.intensityMultipliers[input.dataset.configKey] = value;
+    }
+
+    if (input.dataset.counselingConfig === "exercise") {
+      editedConfig.exerciseCoefficients[input.dataset.exerciseId][input.dataset.configKey] = value;
+    }
+  });
+
+  const normalizedConfig = normalizeScoringConfig(editedConfig);
+
+  return normalizeScoringRecommendation({
+    ...recommendation,
+    evaluationProfile: profile,
+    scoringConfig: normalizedConfig,
+    guides: buildRecommendationGuides(normalizedConfig, profile)
+  });
+}
+
+function renderCounselingResult(recommendation) {
+  const normalizedRecommendation = normalizeScoringRecommendation(recommendation);
+
+  if (!normalizedRecommendation || !counselingResult) {
+    return;
+  }
+
+  currentCounselingRecommendation = normalizedRecommendation;
+  const config = normalizedRecommendation.scoringConfig;
+  const answerSummary = [
+    `経験: ${evaluationProfiles[normalizedRecommendation.answers.experience]?.label || "標準"}`,
+    `目的: ${COUNSELING_GOAL_LABELS[normalizedRecommendation.answers.goal] || "継続重視"}`,
+    `頻度: ${COUNSELING_WEEKLY_DAY_LABELS[normalizedRecommendation.answers.weeklyDays] || "3〜4日"}`,
+    `時間: ${COUNSELING_SESSION_LENGTH_LABELS[normalizedRecommendation.answers.sessionLength] || "5分"}`,
+    `評価: ${COUNSELING_STRICTNESS_LABELS[normalizedRecommendation.answers.strictness] || "標準"}`
+  ].join(" / ");
+  const profileOptions = Object.keys(evaluationProfiles)
+    .map((profile) => `
+      <option value="${profile}" ${profile === normalizedRecommendation.evaluationProfile ? "selected" : ""}>${evaluationProfiles[profile].label}</option>
+    `).join("");
+  const intensityFields = Object.keys(DEFAULT_SCORING_CONFIG.intensityMultipliers)
+    .map((level) => `
+      <label>
+        <span>きつさ${level}</span>
+        <input class="score-config-input" type="number" step="0.05" data-counseling-config="intensity" data-config-key="${level}" value="${config.intensityMultipliers[level]}">
+      </label>
+    `).join("");
+  const exerciseFields = COUNSELING_EXERCISE_IDS
+    .map((exerciseId) => {
+      const definition = EXERCISE_DEFINITIONS[exerciseId];
+      return `
+        <div class="counseling-exercise-card">
+          <h4>${definition.name}</h4>
+          <label>
+            <span>時間係数</span>
+            <input class="score-config-input" type="number" step="0.1" data-counseling-config="exercise" data-exercise-id="${exerciseId}" data-config-key="time" value="${config.exerciseCoefficients[exerciseId].time}">
+          </label>
+          <label>
+            <span>回数係数</span>
+            <input class="score-config-input" type="number" step="0.1" data-counseling-config="exercise" data-exercise-id="${exerciseId}" data-config-key="reps" value="${config.exerciseCoefficients[exerciseId].reps}">
+          </label>
+        </div>
+      `;
+    }).join("");
+  const guideItems = normalizedRecommendation.guides
+    .map((guide) => `
+      <li>
+        <strong>${escapeHtml(guide.exerciseName)}</strong>
+        <span>${escapeHtml([guide.timeText, guide.repsText].filter(Boolean).join(" / "))}</span>
+        <small>${escapeHtml(guide.goalText)}</small>
+      </li>
+    `).join("");
+
+  counselingResult.classList.remove("hidden");
+  counselingResult.innerHTML = `
+    <div class="counseling-summary">
+      <strong>おすすめ評価プロファイル: ${evaluationProfiles[normalizedRecommendation.evaluationProfile].label}</strong>
+      <span>今日の目標スコア: ${config.dailyGoalScore}pt</span>
+      <small>${escapeHtml(answerSummary)}</small>
+      <p>${escapeHtml(normalizedRecommendation.trainerComment)}</p>
+    </div>
+
+    <ul class="counseling-guide-list">${guideItems}</ul>
+
+    <div class="counseling-editor">
+      <label>
+        <span>今日の目標スコア</span>
+        <input class="score-config-input" type="number" step="1" data-counseling-config="dailyGoalScore" value="${config.dailyGoalScore}">
+      </label>
+      <label>
+        <span>評価プロファイル</span>
+        <select class="select-field" data-counseling-profile>${profileOptions}</select>
+      </label>
+      <div class="counseling-editor-group">
+        <h3>きつさ倍率</h3>
+        <div class="score-config-grid">${intensityFields}</div>
+      </div>
+      <div class="counseling-editor-group">
+        <h3>種目ごとの係数</h3>
+        <div class="counseling-exercise-grid">${exerciseFields}</div>
+      </div>
+    </div>
+  `;
+  applyCounselingButton.disabled = false;
+}
+
+function updateCounselingResultFromInputs() {
+  const editedRecommendation = createRecommendationFromEditedInputs();
+
+  if (!editedRecommendation) {
+    return;
+  }
+
+  currentCounselingRecommendation = editedRecommendation;
+  saveCounselingState({
+    answers: editedRecommendation.answers,
+    scoringRecommendation: editedRecommendation,
+    appliedScoringConfig: loadCounselingState()?.appliedScoringConfig || null
+  });
+  renderCounselingResult(editedRecommendation);
+}
+
+function applyScoringRecommendation(recommendation) {
+  const editedRecommendation = normalizeScoringRecommendation(recommendation);
+
+  if (!editedRecommendation) {
+    showMessage("適用できるカウンセリング結果がありません。", false);
+    return;
+  }
+
+  scoringConfig = normalizeScoringConfig(editedRecommendation.scoringConfig);
+  appState.evaluationProfile = editedRecommendation.evaluationProfile;
+  saveDevScoringConfig();
+  saveState();
+  saveCounselingState({
+    answers: editedRecommendation.answers,
+    scoringRecommendation: editedRecommendation,
+    appliedScoringConfig: scoringConfig
+  });
+  renderScoringConfigPanel();
+  updateEvaluationProfileDisplay();
+  updateGoalRecommendation();
+  renderHistory();
+  updateAllStats();
+  updateSessionDisplay();
+  updateDebugStorageOutput();
+  counselingStatus.textContent = "カウンセリング結果を今後の記録用スコア設定に適用しました。過去ログは再計算しません。";
+  showMessage("カウンセリング設定を適用しました。", true);
+}
+
+function handleGenerateCounselingRecommendation() {
+  const answers = buildCounselingAnswers();
+  const recommendation = generateScoringRecommendation(answers);
+
+  saveCounselingState({
+    answers,
+    scoringRecommendation: recommendation,
+    appliedScoringConfig: loadCounselingState()?.appliedScoringConfig || null
+  });
+  renderCounselingResult(recommendation);
+  counselingStatus.textContent = "提案を作成しました。数値を確認してから適用できます。";
+  showMessage("スコア設定案を作成しました。", true);
+}
+
+function discardCounselingResult() {
+  localStorage.removeItem(counselingStorageKey);
+  currentCounselingRecommendation = null;
+  counselingResult.classList.add("hidden");
+  counselingResult.innerHTML = "";
+  applyCounselingButton.disabled = true;
+  counselingStatus.textContent = "カウンセリング結果を破棄しました。適用済みのスコア設定は変更していません。";
+  updateDebugStorageOutput();
+  showMessage("カウンセリング結果を破棄しました。", true);
+}
+
+function resetCounselingToDefault() {
+  localStorage.removeItem(counselingStorageKey);
+  scoringConfig = cloneScoringConfig(DEFAULT_SCORING_CONFIG);
+  isDevScoringConfigActive = false;
+  appState.evaluationProfile = "standard";
+  localStorage.removeItem(devScoringConfigStorageKey);
+  saveState();
+  setCounselingFormAnswers(getDefaultCounselingAnswers());
+  counselingResult.classList.add("hidden");
+  counselingResult.innerHTML = "";
+  applyCounselingButton.disabled = true;
+  renderScoringConfigPanel();
+  renderHistory();
+  updateAllStats();
+  updateSessionDisplay();
+  updateDebugStorageOutput();
+  counselingStatus.textContent = "スコア設定とカウンセリング結果をデフォルトに戻しました。";
+  showMessage("スコア設定をデフォルトに戻しました。", true);
+}
+
+function setupCounselingPanel() {
+  const counselingState = loadCounselingState();
+
+  if (counselingState?.answers) {
+    setCounselingFormAnswers(counselingState.answers);
+  } else {
+    setCounselingFormAnswers(getDefaultCounselingAnswers());
+  }
+
+  if (counselingState?.scoringRecommendation) {
+    renderCounselingResult(counselingState.scoringRecommendation);
+    counselingStatus.textContent = counselingState.appliedScoringConfig
+      ? "保存済みのカウンセリング結果があります。必要なら再編集して適用できます。"
+      : "前回作成した提案があります。数値を確認してから適用できます。";
+  } else {
+    currentCounselingRecommendation = null;
+    counselingResult.classList.add("hidden");
+    counselingResult.innerHTML = "";
+    applyCounselingButton.disabled = true;
+    counselingStatus.textContent = "まだ提案は作成されていません。";
+  }
 }
 
 function renderScoringConfigPanel() {
@@ -2535,6 +3160,7 @@ async function clearAllData() {
   localStorage.removeItem(storageKey);
   localStorage.removeItem(stateStorageKey);
   localStorage.removeItem(devScoringConfigStorageKey);
+  localStorage.removeItem(counselingStorageKey);
   try {
     await Promise.all([
       ...Object.keys(customTrainerSlots).map(deleteTrainerImageRecord),
@@ -2545,11 +3171,13 @@ async function clearAllData() {
   }
   clearAllCustomTrainerObjectUrls();
   pendingCustomTrainerFiles = {};
+  currentCounselingRecommendation = null;
   saveState();
   scoringConfig = cloneScoringConfig(DEFAULT_SCORING_CONFIG);
   isDevScoringConfigActive = false;
   renderTrainerImageSettings();
   renderScoringConfigPanel();
+  setupCounselingPanel();
   applyMusicLoopSetting();
   renderHistory();
   updateAllStats();
@@ -2744,6 +3372,7 @@ function updateDebugStorageOutput() {
     trelog_records: JSON.parse(localStorage.getItem(storageKey) || "[]"),
     trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null"),
     trelog_dev_scoring_config: JSON.parse(localStorage.getItem(devScoringConfigStorageKey) || "null"),
+    trelog_counseling: JSON.parse(localStorage.getItem(counselingStorageKey) || "null"),
     trainerImages: getCustomTrainerImageMetaForBackup()
   }, null, 2);
 }
@@ -2899,7 +3528,8 @@ async function buildBackupData(backupType = "light") {
     localStorage: {
       trelog_records: JSON.parse(localStorage.getItem(storageKey) || "[]"),
       trelog_state: JSON.parse(localStorage.getItem(stateStorageKey) || "null"),
-      trelog_dev_scoring_config: JSON.parse(localStorage.getItem(devScoringConfigStorageKey) || "null")
+      trelog_dev_scoring_config: JSON.parse(localStorage.getItem(devScoringConfigStorageKey) || "null"),
+      trelog_counseling: JSON.parse(localStorage.getItem(counselingStorageKey) || "null")
     },
     trainerImages: await getTrainerImagesBackupPayload(includeImageData)
   };
@@ -2947,6 +3577,12 @@ function restoreBackupLocalStorage(backupData) {
   } else {
     localStorage.removeItem(devScoringConfigStorageKey);
   }
+
+  if (backupStorage.trelog_counseling) {
+    localStorage.setItem(counselingStorageKey, JSON.stringify(backupStorage.trelog_counseling));
+  } else {
+    localStorage.removeItem(counselingStorageKey);
+  }
 }
 
 async function restoreTrainerImagesFromBackup(backupData) {
@@ -2992,6 +3628,7 @@ async function importBackupData(file) {
     isDevScoringConfigActive = localStorage.getItem(devScoringConfigStorageKey) !== null;
     saveState();
     renderScoringConfigPanel();
+    setupCounselingPanel();
     updateEvaluationProfileDisplay();
     applyMusicLoopSetting();
     renderHistory();
@@ -3070,6 +3707,7 @@ async function initializeApp() {
   updateAppVersionDisplay();
   setupDebugPanel();
   renderScoringConfigPanel();
+  setupCounselingPanel();
   updateEvaluationProfileDisplay();
   handleExerciseChange();
   updateRecordUnit();
@@ -3101,6 +3739,16 @@ scorePreviewIntensity.addEventListener("change", updateScorePreview);
 scorePreviewProfile.addEventListener("change", updateScorePreview);
 copyScoreConfigButton.addEventListener("click", copyScoringConfigJson);
 resetScoreConfigButton.addEventListener("click", resetDevScoringConfig);
+counselingForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  handleGenerateCounselingRecommendation();
+});
+generateCounselingButton.addEventListener("click", handleGenerateCounselingRecommendation);
+applyCounselingButton.addEventListener("click", () => {
+  applyScoringRecommendation(createRecommendationFromEditedInputs() || currentCounselingRecommendation);
+});
+discardCounselingButton.addEventListener("click", discardCounselingResult);
+resetCounselingDefaultButton.addEventListener("click", resetCounselingToDefault);
 customTrainerSlotElements.forEach((slotElement) => {
   slotElement.querySelector("[data-trainer-slot-input]").addEventListener("change", () => {
     handleCustomTrainerFileChange(slotElement);

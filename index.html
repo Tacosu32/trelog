@@ -258,6 +258,94 @@
       </p>
     </section>
 
+    <section class="panel counseling-panel" aria-labelledby="counseling-title">
+      <div class="section-heading">
+        <h2 id="counseling-title">カウンセリング</h2>
+        <span class="dev-scoring-status">v1 ルールベース</span>
+      </div>
+      <p class="settings-description">
+        運動経験や目的から、今日の目標スコアと種目ごとのスコア係数を提案します。提案は編集してから適用できます。
+      </p>
+
+      <form id="counseling-form" class="counseling-form">
+        <label class="field-label" for="counseling-experience">運動経験</label>
+        <select id="counseling-experience" class="select-field">
+          <option value="beginner">初心者</option>
+          <option value="standard">標準</option>
+          <option value="experienced">慣れている</option>
+          <option value="hard">高負荷向け</option>
+        </select>
+
+        <label class="field-label" for="counseling-goal">目的</label>
+        <select id="counseling-goal" class="select-field">
+          <option value="continuity">継続重視</option>
+          <option value="diet">ダイエット</option>
+          <option value="strength">筋力アップ</option>
+          <option value="stamina">体力作り</option>
+          <option value="habit">軽い習慣化</option>
+        </select>
+
+        <div class="counseling-grid">
+          <label>
+            <span>週に何日くらい運動したいか</span>
+            <select id="counseling-weekly-days" class="select-field">
+              <option value="1-2">1〜2日</option>
+              <option value="3-4" selected>3〜4日</option>
+              <option value="5+">5日以上</option>
+            </select>
+          </label>
+          <label>
+            <span>1回あたりの運動時間</span>
+            <select id="counseling-session-length" class="select-field">
+              <option value="3">3分</option>
+              <option value="5" selected>5分</option>
+              <option value="10">10分</option>
+              <option value="15">15分以上</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="field-label" for="counseling-strictness">きつめの評価が好きか</label>
+        <select id="counseling-strictness" class="select-field">
+          <option value="loose">ゆるめに評価してほしい</option>
+          <option value="standard" selected>標準</option>
+          <option value="strict">厳しめに評価してほしい</option>
+        </select>
+
+        <div class="counseling-menu-groups">
+          <fieldset>
+            <legend>得意メニュー</legend>
+            <label><input type="checkbox" name="counseling-good-menu" value="pushup"> 腕立て</label>
+            <label><input type="checkbox" name="counseling-good-menu" value="abs"> 腹筋</label>
+            <label><input type="checkbox" name="counseling-good-menu" value="squat"> スクワット</label>
+            <label><input type="checkbox" name="counseling-good-menu" value="plank"> プランク</label>
+            <label><input type="checkbox" name="counseling-good-menu" value="stretch"> ストレッチ</label>
+          </fieldset>
+          <fieldset>
+            <legend>苦手メニュー</legend>
+            <label><input type="checkbox" name="counseling-weak-menu" value="pushup"> 腕立て</label>
+            <label><input type="checkbox" name="counseling-weak-menu" value="abs"> 腹筋</label>
+            <label><input type="checkbox" name="counseling-weak-menu" value="squat"> スクワット</label>
+            <label><input type="checkbox" name="counseling-weak-menu" value="plank"> プランク</label>
+            <label><input type="checkbox" name="counseling-weak-menu" value="stretch"> ストレッチ</label>
+          </fieldset>
+        </div>
+
+        <div class="settings-actions counseling-actions">
+          <button id="generate-counseling-button" class="primary-button" type="button">提案を作成</button>
+          <button id="discard-counseling-button" class="secondary-button" type="button">結果を破棄</button>
+        </div>
+      </form>
+
+      <div id="counseling-result" class="counseling-result hidden" aria-live="polite"></div>
+
+      <div class="settings-actions counseling-actions">
+        <button id="apply-counseling-button" class="save-button" type="button" disabled>この設定を適用</button>
+        <button id="reset-counseling-default-button" class="secondary-button" type="button">デフォルト設定に戻す</button>
+      </div>
+      <p id="counseling-status" class="settings-description">まだ提案は作成されていません。</p>
+    </section>
+
     <section class="panel score-config-panel" aria-labelledby="score-config-title">
       <div class="section-heading">
         <h2 id="score-config-title">スコア調整</h2>

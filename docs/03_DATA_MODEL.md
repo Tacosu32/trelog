@@ -377,3 +377,41 @@ version 2のバックアップには `backupType` を含める。
 完全バックアップのファイル名は `trelog_backup_full_YYYY-MM-DD.json` とする。
 
 インポート時は `dataUrl` がある画像だけIndexedDBへ復元し、`dataUrl` がない画像は復元しない。localStorage部分は軽量・完全のどちらでも復元する。
+# 2026-06-10 追記: カウンセリング保存データ
+
+## trelog_counseling
+
+localStorageに `trelog_counseling` として保存する。
+
+```json
+{
+  "answers": {
+    "experience": "beginner",
+    "goal": "continuity",
+    "weeklyDays": "3-4",
+    "sessionLength": "5",
+    "strictness": "standard",
+    "goodMenus": [],
+    "weakMenus": []
+  },
+  "scoringRecommendation": {
+    "generatedAt": "ISO-8601",
+    "evaluationProfile": "beginner",
+    "dailyGoalScore": 100,
+    "intensityMultipliers": {},
+    "evaluationProfileMultipliers": {},
+    "exerciseCoefficients": {},
+    "scoringConfig": {},
+    "guides": [],
+    "trainerComment": ""
+  },
+  "appliedScoringConfig": {},
+  "updatedAt": "ISO-8601"
+}
+```
+
+- `answers` はカウンセリングフォームの回答。
+- `scoringRecommendation` は表示・再編集用の提案結果。
+- `appliedScoringConfig` は「この設定を適用」時点のスコア設定。
+- 実際の今後のスコア計算には、従来通り `trelog_dev_scoring_config` と `trelog_state.evaluationProfile` を使う。
+- バックアップJSONの `localStorage` セクションに `trelog_counseling` を含める。古いバックアップに存在しない場合は未設定として扱う。

@@ -713,6 +713,146 @@ input[type="radio"] {
   margin-top: 14px;
 }
 
+.counseling-panel,
+.counseling-form,
+.counseling-result,
+.counseling-editor,
+.counseling-editor-group {
+  display: grid;
+  gap: 12px;
+}
+
+.counseling-grid,
+.counseling-menu-groups,
+.counseling-exercise-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.counseling-grid,
+.counseling-menu-groups {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.counseling-grid label,
+.counseling-editor label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.counseling-menu-groups fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.counseling-menu-groups legend {
+  padding: 0 4px;
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.counseling-menu-groups label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.counseling-menu-groups input {
+  width: 18px;
+  height: 18px;
+}
+
+.counseling-result {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.counseling-summary {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft-green);
+}
+
+.counseling-summary strong {
+  color: var(--secondary);
+  font-size: 0.98rem;
+}
+
+.counseling-summary span,
+.counseling-summary small,
+.counseling-summary p {
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.counseling-summary small {
+  color: var(--muted);
+}
+
+.counseling-guide-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.counseling-guide-list li {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.counseling-guide-list strong {
+  font-size: 0.9rem;
+}
+
+.counseling-guide-list span,
+.counseling-guide-list small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.counseling-exercise-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.counseling-exercise-card h4 {
+  grid-column: 1 / -1;
+}
+
+.counseling-actions {
+  margin-top: 0;
+}
+
 .score-config-group {
   padding-top: 10px;
   border-top: 1px solid var(--line);
@@ -1848,7 +1988,10 @@ input[type="radio"] {
   .result-score-grid,
   .result-progress,
   .custom-trainer-preview,
-  .settings-actions {
+  .settings-actions,
+  .counseling-grid,
+  .counseling-menu-groups,
+  .counseling-exercise-card {
     grid-template-columns: 1fr;
   }
 

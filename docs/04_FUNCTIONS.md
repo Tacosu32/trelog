@@ -902,3 +902,23 @@ service workerのインストール時に、`index.html`、`style.css`、`app.js
 
 GETリクエストに対して、キャッシュに保存済みのレスポンスがあればそれを返す。
 キャッシュにない場合は通常どおりネットワークから取得する。
+# 2026-06-10 追記: カウンセリング機能 v1 の関数
+
+- `buildCounselingAnswers()`
+  - カウンセリングフォームから、運動経験、目的、希望頻度、運動時間、評価の厳しさ、得意/苦手メニューを集める。
+- `generateScoringRecommendation(answers)`
+  - 回答内容をもとに、ルールベースでスコア設定案を作る。
+  - 将来的にLLMカウンセリングへ差し替える場合は、この関数を置き換える。
+- `applyScoringRecommendation(recommendation)`
+  - 編集済みの提案を `trelog_dev_scoring_config` と `trelog_state.evaluationProfile` に反映する。
+  - 過去ログは再計算せず、今後の記録から新設定を使う。
+- `renderCounselingResult(recommendation)`
+  - おすすめ評価プロファイル、今日の目標スコア、種目ごとの目安、編集用入力欄、トレーナーコメントを描画する。
+- `createRecommendationFromEditedInputs()`
+  - 提案結果内の数値入力から、適用直前のスコア設定案を作る。
+- `setupCounselingPanel()`
+  - 保存済みのカウンセリング回答・提案結果を読み込み、設定画面に復元する。
+- `loadCounselingState()` / `saveCounselingState(state)`
+  - `trelog_counseling` の読み書きを行う。
+- `normalizeScoringRecommendation(recommendation)`
+  - バックアップ復元や古い保存値を安全に扱うため、提案データを既定構造へ補正する。
