@@ -1,6 +1,6 @@
 const DEBUG_MODE = true;
-const APP_VERSION = "0.4.1-dev";
-const APP_BUILD_LABEL = "mobile-safe-area-2026-06-02";
+const APP_VERSION = "0.5.0-dev";
+const APP_BUILD_LABEL = "continuity-calendar-2026-06-09";
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
@@ -48,6 +48,11 @@ const levelDisplay = document.getElementById("level-display");
 const totalExpText = document.getElementById("total-exp");
 const restTicketsText = document.getElementById("rest-tickets");
 const restDatesArea = document.getElementById("rest-dates");
+const recentRestEventText = document.getElementById("recent-rest-event");
+const calendarMonthLabel = document.getElementById("calendar-month-label");
+const calendarPrevMonthButton = document.getElementById("calendar-prev-month");
+const calendarNextMonthButton = document.getElementById("calendar-next-month");
+const continuityCalendar = document.getElementById("continuity-calendar");
 const weeklyRankText = document.getElementById("weekly-rank");
 const weeklyRankDetail = document.getElementById("weekly-rank-detail");
 const levelProgressTitle = document.getElementById("level-progress-title");
@@ -236,6 +241,7 @@ let records = [];
 let appState = getDefaultState();
 let scoringConfig = loadScoringConfig();
 let isDevScoringConfigActive = localStorage.getItem(devScoringConfigStorageKey) !== null;
+let calendarMonthDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let selectedMusicUrl = "";
 let timerState = "idle";
 let elapsedSeconds = 0;
@@ -716,6 +722,20 @@ function addDays(dateText, days) {
   const date = new Date(parts[0], parts[1] - 1, parts[2]);
   date.setDate(date.getDate() + days);
   return formatDateString(date);
+}
+
+function parseDateString(dateText) {
+  const parts = String(dateText || "").split("-").map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function isValidDateString(dateText) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(dateText || ""));
+}
+
+function getEarliestContinuityDate() {
+  const dates = [...getRecordedDateSet(), ...getRestDateSet()].filter(isValidDateString).sort();
+  return dates[0] || null;
 }
 
 function handleExerciseChange() {
@@ -1406,9 +1426,17 @@ function updateGoalRecommendation() {
 
 function calculateTodayScore() {
   const today = getTodayDateString();
+  return calculateDailyScore(today);
+}
+
+function calculateDailyScore(dateText) {
   return records
-    .filter((record) => record.date === today)
+    .filter((record) => record.date === dateText)
     .reduce((total, record) => total + Number(record.score || 0), 0);
+}
+
+function isGoalReachedOnDate(dateText) {
+  return calculateDailyScore(dateText) >= getDailyGoalScore();
 }
 
 function calculateTotalExp() {
@@ -1470,42 +1498,66 @@ function getContinuityDateSet() {
   return new Set([...getRecordedDateSet(), ...getRestDateSet()]);
 }
 
-function hasContinuityBefore(dateText, continuityDates) {
-  return Array.from(continuityDates).some((date) => date < dateText);
+function createRestTicketEvent(dateText, type = "auto-used") {
+  return {
+    id: `rest-event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    date: dateText,
+    type,
+    createdAt: new Date().toISOString()
+  };
 }
 
 function consumeRestTicketsForMissedDays() {
+  const today = getTodayDateString();
+  const yesterday = addDays(today, -1);
   const continuityDates = getContinuityDateSet();
-  let cursor = records.some((record) => record.date === getTodayDateString())
-    ? getTodayDateString()
-    : addDays(getTodayDateString(), -1);
-  let usedCount = 0;
+  const missedRestDates = [];
+  const previousCheckDate = appState.lastContinuityCheckDate;
+  const earliestContinuityDate = getEarliestContinuityDate();
+  let cursor = previousCheckDate
+    ? addDays(previousCheckDate, 1)
+    : earliestContinuityDate
+      ? addDays(earliestContinuityDate, 1)
+      : today;
 
-  while (hasContinuityBefore(cursor, continuityDates)) {
+  if (cursor > yesterday) {
+    appState.lastContinuityCheckDate = today;
+    saveState();
+    return [];
+  }
+
+  while (cursor <= yesterday) {
     if (continuityDates.has(cursor)) {
-      cursor = addDays(cursor, -1);
+      cursor = addDays(cursor, 1);
       continue;
     }
 
-    if (appState.restTickets <= 0) {
-      break;
+    if (appState.restTickets > 0) {
+      appState.restDates.push(cursor);
+      appState.restTickets -= 1;
+      appState.restTicketEvents.push(createRestTicketEvent(cursor));
+      continuityDates.add(cursor);
+      missedRestDates.push(cursor);
     }
 
-    appState.restDates.push(cursor);
-    appState.restTickets -= 1;
-    continuityDates.add(cursor);
-    usedCount += 1;
-    cursor = addDays(cursor, -1);
+    cursor = addDays(cursor, 1);
   }
 
-  if (usedCount > 0) {
-    appState.restDates = Array.from(new Set(appState.restDates)).sort();
-    saveState();
-    updateTrainerComment(`未記録日を${usedCount}日分、休憩チケットで守ったよ。続いてる流れ、大事にしよう。`);
+  appState.restDates = Array.from(new Set(appState.restDates)).sort();
+  appState.restTicketEvents = appState.restTicketEvents
+    .filter((event) => event && isValidDateString(event.date))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  appState.lastContinuityCheckDate = today;
+  saveState();
+
+  if (missedRestDates.length > 0) {
+    const latestUsedDate = missedRestDates[missedRestDates.length - 1];
+    const dateLabel = latestUsedDate === yesterday ? "昨日" : latestUsedDate;
+    updateTrainerComment(`${dateLabel}は休憩チケットで継続を守ったよ。今日は少しだけ動いてみよう！`);
     setTrainerImage(homeTrainerImage, "rest");
   }
 
-  return usedCount;
+  return missedRestDates;
 }
 
 function calculateStreakDays() {
@@ -1612,6 +1664,8 @@ function updateAllStats() {
   updateGoalCard();
   updateDashboard();
   renderRestDates();
+  renderRecentRestEvent();
+  renderContinuityCalendar();
   updateDebugStorageOutput();
   updateSessionDisplay();
 }
@@ -1631,6 +1685,89 @@ function renderRestDates() {
       restDate.textContent = `休憩日：${date}`;
       restDatesArea.appendChild(restDate);
     });
+}
+
+function renderRecentRestEvent() {
+  if (!recentRestEventText) {
+    return;
+  }
+
+  const latestEvent = appState.restTicketEvents
+    .slice()
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+
+  if (!latestEvent) {
+    recentRestEventText.textContent = "休憩チケットの使用履歴はまだありません。";
+    return;
+  }
+
+  recentRestEventText.textContent = `直近の休憩：${latestEvent.date} を休憩チケットで守りました。`;
+}
+
+function getMonthLabel(date) {
+  return `${date.getFullYear()}年${date.getMonth() + 1}月`;
+}
+
+function createCalendarDayCell(dateText) {
+  const cell = document.createElement("div");
+  const dateNumber = document.createElement("span");
+  const scoreText = document.createElement("span");
+  const markText = document.createElement("span");
+  const today = getTodayDateString();
+  const score = calculateDailyScore(dateText);
+  const isRecorded = getRecordedDateSet().has(dateText);
+  const isRest = getRestDateSet().has(dateText);
+  const isFuture = dateText > today;
+
+  cell.className = "calendar-day";
+  cell.classList.toggle("is-recorded", isRecorded);
+  cell.classList.toggle("is-rest", !isRecorded && isRest);
+  cell.classList.toggle("is-future", isFuture);
+  cell.classList.toggle("is-today", dateText === today);
+  cell.setAttribute("aria-label", `${dateText} ${isRecorded ? "記録日" : isRest ? "休憩日" : isFuture ? "未来日" : "未記録日"}`);
+
+  dateNumber.className = "calendar-date";
+  dateNumber.textContent = String(parseDateString(dateText).getDate());
+  scoreText.className = "calendar-score";
+  scoreText.textContent = score > 0 ? `${score}pt` : "";
+  markText.className = "calendar-mark";
+  markText.textContent = [
+    isRest ? "休" : "",
+    isGoalReachedOnDate(dateText) ? "達" : ""
+  ].filter(Boolean).join(" ");
+
+  cell.append(dateNumber, scoreText, markText);
+  return cell;
+}
+
+function renderContinuityCalendar() {
+  if (!continuityCalendar || !calendarMonthLabel) {
+    return;
+  }
+
+  continuityCalendar.innerHTML = "";
+  calendarMonthLabel.textContent = getMonthLabel(calendarMonthDate);
+
+  const year = calendarMonthDate.getFullYear();
+  const month = calendarMonthDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const leadingBlanks = (firstDay.getDay() + 6) % 7;
+
+  for (let index = 0; index < leadingBlanks; index += 1) {
+    const blankCell = document.createElement("div");
+    blankCell.className = "calendar-day is-empty";
+    continuityCalendar.appendChild(blankCell);
+  }
+
+  for (let day = 1; day <= lastDay.getDate(); day += 1) {
+    continuityCalendar.appendChild(createCalendarDayCell(formatDateString(new Date(year, month, day))));
+  }
+}
+
+function moveCalendarMonth(offset) {
+  calendarMonthDate = new Date(calendarMonthDate.getFullYear(), calendarMonthDate.getMonth() + offset, 1);
+  renderContinuityCalendar();
 }
 
 function loadRecords() {
@@ -1654,8 +1791,10 @@ function saveRecords() {
 
 function getDefaultState() {
   return {
+    lastContinuityCheckDate: null,
     restTickets: 2,
     restDates: [],
+    restTicketEvents: [],
     claimedGoalRewardDates: [],
     claimedLevelRewards: [],
     evaluationProfile: "standard",
@@ -1663,17 +1802,43 @@ function getDefaultState() {
   };
 }
 
+function normalizeDateArray(value) {
+  return Array.isArray(value)
+    ? Array.from(new Set(value.filter(isValidDateString))).sort()
+    : [];
+}
+
+function normalizeRestTicketEvents(value) {
+  return Array.isArray(value)
+    ? value
+      .filter((event) => event && isValidDateString(event.date))
+      .map((event) => ({
+        id: String(event.id || `rest-event-${event.date}`),
+        date: event.date,
+        type: event.type || "auto-used",
+        createdAt: event.createdAt || new Date(`${event.date}T00:00:00`).toISOString()
+      }))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    : [];
+}
+
 function normalizeState(parsedState) {
   const defaultState = getDefaultState();
+  const restDateSource = Array.isArray(parsedState.restDates)
+    ? parsedState.restDates
+    : Array.isArray(parsedState.frozenDates)
+      ? parsedState.frozenDates
+      : defaultState.restDates;
+
   return {
-    restTickets: Number(parsedState.restTickets ?? parsedState.freezeTickets ?? defaultState.restTickets),
-    restDates: Array.isArray(parsedState.restDates)
-      ? parsedState.restDates
-      : Array.isArray(parsedState.frozenDates)
-        ? parsedState.frozenDates
-        : defaultState.restDates,
+    lastContinuityCheckDate: isValidDateString(parsedState.lastContinuityCheckDate)
+      ? parsedState.lastContinuityCheckDate
+      : defaultState.lastContinuityCheckDate,
+    restTickets: Math.max(0, Number(parsedState.restTickets ?? parsedState.freezeTickets ?? defaultState.restTickets)),
+    restDates: normalizeDateArray(restDateSource),
+    restTicketEvents: normalizeRestTicketEvents(parsedState.restTicketEvents),
     claimedGoalRewardDates: Array.isArray(parsedState.claimedGoalRewardDates)
-      ? parsedState.claimedGoalRewardDates
+      ? normalizeDateArray(parsedState.claimedGoalRewardDates)
       : defaultState.claimedGoalRewardDates,
     claimedLevelRewards: Array.isArray(parsedState.claimedLevelRewards)
       ? parsedState.claimedLevelRewards
@@ -2298,6 +2463,96 @@ function addTestRecord(dateText) {
   refreshAfterDebugAction(`${dateText} のテスト記録を追加しました。`);
 }
 
+function removeRecordsOnDate(dateText) {
+  records = records.filter((record) => record.date !== dateText);
+}
+
+function setDateAsRecord(dateText) {
+  if (!dateText) {
+    showMessage("日付を選んでください。", false);
+    return;
+  }
+
+  records.push(createTestRecord(dateText));
+  appState.restDates = appState.restDates.filter((date) => date !== dateText);
+  refreshAfterDebugAction(`${dateText} を記録日にしました。`);
+}
+
+function setDateAsRest(dateText, type = "debug-set") {
+  if (!dateText) {
+    showMessage("日付を選んでください。", false);
+    return;
+  }
+
+  removeRecordsOnDate(dateText);
+  if (!appState.restDates.includes(dateText)) {
+    appState.restDates.push(dateText);
+  }
+  appState.restDates = Array.from(new Set(appState.restDates)).sort();
+  appState.restTicketEvents.push(createRestTicketEvent(dateText, type));
+  refreshAfterDebugAction(`${dateText} を休憩日にしました。`);
+}
+
+function addPreviousDayToStreak() {
+  const continuityDates = getContinuityDateSet();
+  let cursor = getTodayDateString();
+
+  if (!continuityDates.has(cursor)) {
+    addTestRecord(cursor);
+    return;
+  }
+
+  while (continuityDates.has(cursor)) {
+    cursor = addDays(cursor, -1);
+  }
+
+  setDateAsRecord(cursor);
+}
+
+function removeLatestContinuityDay() {
+  const continuityDates = getContinuityDateSet();
+  let cursor = getTodayDateString();
+
+  if (!continuityDates.has(cursor)) {
+    cursor = addDays(cursor, -1);
+  }
+
+  if (!continuityDates.has(cursor)) {
+    showMessage("削除できる直近の継続日がありません。", false);
+    return;
+  }
+
+  removeRecordsOnDate(cursor);
+  appState.restDates = appState.restDates.filter((date) => date !== cursor);
+  appState.restTicketEvents = appState.restTicketEvents.filter((event) => event.date !== cursor);
+  refreshAfterDebugAction(`${cursor} を未記録状態にしました。`);
+}
+
+function clearYesterdayContinuity() {
+  const yesterday = addDays(getTodayDateString(), -1);
+  removeRecordsOnDate(yesterday);
+  appState.restDates = appState.restDates.filter((date) => date !== yesterday);
+  appState.restTicketEvents = appState.restTicketEvents.filter((event) => event.date !== yesterday);
+  appState.lastContinuityCheckDate = addDays(yesterday, -1);
+  refreshAfterDebugAction("昨日を未記録状態にしました。");
+}
+
+function runContinuityCheckManually() {
+  const yesterday = addDays(getTodayDateString(), -1);
+  if (!appState.lastContinuityCheckDate || appState.lastContinuityCheckDate >= yesterday) {
+    appState.lastContinuityCheckDate = addDays(yesterday, -1);
+  }
+  const usedDates = consumeRestTicketsForMissedDays();
+  renderHistory();
+  updateAllStats();
+  showMessage(
+    usedDates.length > 0
+      ? `日跨ぎ判定で ${usedDates.length} 日分の休憩チケットを使いました。`
+      : "日跨ぎ判定を実行しました。消費対象はありませんでした。",
+    true
+  );
+}
+
 function getAppVersionText() {
   return `トレログ v${APP_VERSION} / ${APP_BUILD_LABEL}`;
 }
@@ -2653,6 +2908,16 @@ function setupDebugPanel() {
   document.getElementById("debug-add-date-record").addEventListener("click", () => {
     addTestRecord(document.getElementById("debug-test-date").value);
   });
+  document.getElementById("debug-set-record-date").addEventListener("click", () => {
+    setDateAsRecord(document.getElementById("debug-continuity-date").value);
+  });
+  document.getElementById("debug-set-rest-date").addEventListener("click", () => {
+    setDateAsRest(document.getElementById("debug-continuity-date").value);
+  });
+  document.getElementById("debug-streak-plus-one").addEventListener("click", addPreviousDayToStreak);
+  document.getElementById("debug-streak-minus-one").addEventListener("click", removeLatestContinuityDay);
+  document.getElementById("debug-clear-yesterday").addEventListener("click", clearYesterdayContinuity);
+  document.getElementById("debug-run-continuity-check").addEventListener("click", runContinuityCheckManually);
   document.getElementById("debug-add-yesterday-record").addEventListener("click", () => {
     addTestRecord(addDays(getTodayDateString(), -1));
   });
@@ -2663,6 +2928,19 @@ function setupDebugPanel() {
   if (clearAppCacheButton) {
     clearAppCacheButton.addEventListener("click", clearAppCachesAndReload);
   }
+}
+
+function checkDateRollover() {
+  const today = getTodayDateString();
+  if (appState.lastContinuityCheckDate === today) {
+    return;
+  }
+
+  todayLabel.textContent = getTodayText();
+  consumeRestTicketsForMissedDays();
+  markGoalRewardIfNeeded();
+  renderHistory();
+  updateAllStats();
 }
 
 async function initializeApp() {
@@ -2685,6 +2963,7 @@ async function initializeApp() {
   claimLevelRewardsIfNeeded();
   renderHistory();
   updateAllStats();
+  setInterval(checkDateRollover, 60 * 1000);
 }
 
 musicFileInput.addEventListener("change", handleMusicFileChange);
@@ -2778,5 +3057,11 @@ navButtons.forEach((button) => {
     switchView(button.dataset.viewTarget);
   });
 });
+if (calendarPrevMonthButton) {
+  calendarPrevMonthButton.addEventListener("click", () => moveCalendarMonth(-1));
+}
+if (calendarNextMonthButton) {
+  calendarNextMonthButton.addEventListener("click", () => moveCalendarMonth(1));
+}
 
 initializeApp();

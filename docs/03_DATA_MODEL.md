@@ -1,5 +1,29 @@
 # 03_DATA_MODEL
 
+## 2026-06-09 追記: 継続チェック状態
+
+`trelog_state` に以下を追加する。既存データに存在しない場合は起動時に補完する。
+
+| フィールド | 内容 | 初期値 |
+| --- | --- | --- |
+| lastContinuityCheckDate | 休憩チケットの日跨ぎ判定を最後に実行した日付 | `null` |
+| restDates | 休憩チケットで継続を守った日付一覧 | `[]` |
+| restTickets | 所持している休憩チケット枚数 | `2` |
+| restTicketEvents | 休憩チケット使用イベント一覧 | `[]` |
+
+`restTicketEvents` の要素は以下の形式とする。
+
+```json
+{
+  "id": "rest-event-...",
+  "date": "2026-06-03",
+  "type": "auto-used",
+  "createdAt": "2026-06-04T00:00:00.000Z"
+}
+```
+
+`type` は自動消費では `"auto-used"`、デバッグ操作では `"debug-set"` を使う。バックアップJSONの `localStorage.trelog_state` には上記フィールドをそのまま含める。
+
 ## Alpha Data Policy
 
 α版ではlocalStorageへ保存する。

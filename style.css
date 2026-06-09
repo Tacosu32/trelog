@@ -169,6 +169,123 @@ h2 {
   font-size: 2.25rem;
 }
 
+.calendar-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.calendar-heading {
+  align-items: center;
+}
+
+.calendar-controls {
+  display: grid;
+  grid-template-columns: 36px minmax(92px, 1fr) 36px;
+  align-items: center;
+  gap: 6px;
+  min-width: 178px;
+}
+
+.calendar-controls button {
+  width: 36px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+  color: var(--primary-dark);
+  font-size: 1.2rem;
+  font-weight: 900;
+  touch-action: manipulation;
+}
+
+.calendar-controls span {
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.recent-rest-event {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.calendar-weekdays,
+.continuity-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.calendar-weekdays span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.calendar-day {
+  position: relative;
+  min-height: 54px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 2px;
+  border: 1px solid #ddd3c7;
+  border-radius: 8px;
+  padding: 6px 4px;
+  background: #f1eee9;
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.calendar-day.is-recorded {
+  border-color: rgba(47, 159, 143, 0.45);
+  background: #e1f6ef;
+}
+
+.calendar-day.is-rest {
+  border-color: rgba(74, 129, 196, 0.45);
+  background: #e7f0ff;
+}
+
+.calendar-day.is-future {
+  opacity: 0.45;
+}
+
+.calendar-day.is-today {
+  border-width: 2px;
+  border-color: var(--primary);
+}
+
+.calendar-day.is-empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+.calendar-date {
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.calendar-score {
+  align-self: end;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.calendar-mark {
+  min-height: 14px;
+  color: var(--primary-dark);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
 .trainer-area {
   display: grid;
   grid-template-columns: 112px 1fr;

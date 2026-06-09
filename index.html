@@ -56,6 +56,28 @@
       </div>
     </section>
 
+    <section class="panel calendar-panel" aria-labelledby="calendar-title">
+      <div class="section-heading calendar-heading">
+        <h2 id="calendar-title">カレンダー</h2>
+        <div class="calendar-controls">
+          <button id="calendar-prev-month" type="button" aria-label="前月">‹</button>
+          <span id="calendar-month-label">----</span>
+          <button id="calendar-next-month" type="button" aria-label="次月">›</button>
+        </div>
+      </div>
+      <p id="recent-rest-event" class="recent-rest-event">休憩チケットの使用履歴はまだありません。</p>
+      <div class="calendar-weekdays" aria-hidden="true">
+        <span>月</span>
+        <span>火</span>
+        <span>水</span>
+        <span>木</span>
+        <span>金</span>
+        <span>土</span>
+        <span>日</span>
+      </div>
+      <div id="continuity-calendar" class="continuity-calendar" aria-label="継続カレンダー"></div>
+    </section>
+
     <section class="trainer-area" aria-label="トレーナー">
       <div class="trainer-visual" aria-hidden="true">
         <img id="home-trainer-image" class="trainer-image hidden" alt="">
@@ -458,7 +480,16 @@
           <input id="debug-test-date" type="date">
           <button id="debug-add-date-record" type="button">任意の日付のテスト記録を追加</button>
         </div>
+        <div class="debug-date-row">
+          <input id="debug-continuity-date" type="date">
+          <button id="debug-set-record-date" type="button">指定日を記録日にする</button>
+          <button id="debug-set-rest-date" type="button">指定日を休憩日にする</button>
+        </div>
         <div class="debug-actions">
+          <button id="debug-streak-plus-one" type="button">連続記録 +1日</button>
+          <button id="debug-streak-minus-one" type="button">連続記録 -1日</button>
+          <button id="debug-clear-yesterday" type="button">昨日を未記録状態にする</button>
+          <button id="debug-run-continuity-check" type="button">休憩チケット日跨ぎ判定を手動実行</button>
           <button id="debug-add-yesterday-record" type="button">昨日のテスト記録を追加</button>
           <button id="debug-add-three-days-record" type="button">3日前のテスト記録を追加</button>
           <button id="debug-refresh-storage" type="button">localStorage内容を表示</button>
