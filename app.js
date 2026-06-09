@@ -1,6 +1,6 @@
 const DEBUG_MODE = true;
-const APP_VERSION = "0.6.0-dev";
-const APP_BUILD_LABEL = "scoring-counseling-2026-06-10";
+const APP_VERSION = "0.7.0-dev";
+const APP_BUILD_LABEL = "result-exp-animation-2026-06-10";
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
@@ -136,6 +136,12 @@ const resultAchievementRate = document.getElementById("result-achievement-rate")
 const resultGoalStatus = document.getElementById("result-goal-status");
 const resultLevel = document.getElementById("result-level");
 const resultNextLevelExp = document.getElementById("result-next-level-exp");
+const resultLevelChange = document.getElementById("result-level-change");
+const resultExpBefore = document.getElementById("result-exp-before");
+const resultExpGain = document.getElementById("result-exp-gain");
+const resultExpAfter = document.getElementById("result-exp-after");
+const resultExpGaugeFill = document.getElementById("result-exp-gauge-fill");
+const resultExpGaugeLabel = document.getElementById("result-exp-gauge-label");
 const resultBadgeList = document.getElementById("result-badge-list");
 const resultBonusList = document.getElementById("result-bonus-list");
 const resultOkButton = document.getElementById("result-ok-button");
@@ -310,6 +316,7 @@ let sessionLineOverride = "";
 let customTrainerImages = {};
 let pendingCustomTrainerFiles = {};
 let currentCounselingRecommendation = null;
+let resultAnimationTimers = [];
 const trainerImagePaths = {
   localPrivate: "assets/trainer/local/trainer_private.png",
   default: "assets/trainer/public/trainer_default.png",
@@ -2713,14 +2720,14 @@ function getResultTrainerComment(result) {
     return "休憩チケット獲得！がんばった分、休める日もちゃんと守れるよ。";
   }
 
-  if (result.goalAchieved) {
-    return result.goalMarked
-      ? "今日の目標達成！かなりいい感じだよ！"
-      : "今日の目標はもう達成済みだよ。さらに積めたの、すごくいいね。";
+  if (result.leveledUp) {
+    return "レベルアップ！積み重ねが形になってきたよ。";
   }
 
-  if (result.leveledUp) {
-    return "レベルアップ！積み重ねが形になってきたね。";
+  if (result.goalAchieved) {
+    return result.goalMarked
+      ? "今日の目標達成！しっかりやり切れたね。"
+      : "今日の目標はもう達成済みだよ。さらに積めたの、すごくいいね。";
   }
 
   if (result.record.intensity <= 2) {
@@ -2735,36 +2742,42 @@ function getResultTrainerComment(result) {
 }
 
 function getResultTitle(result) {
-  if (result.goalAchieved) {
-    return "今日の目標達成！";
+  if (result.levelRewards.length > 0) {
+    return "報酬獲得！";
   }
 
   if (result.leveledUp) {
     return "レベルアップ！";
   }
 
+  if (result.goalAchieved) {
+    return "今日の目標達成！";
+  }
+
   return "ナイス記録！";
 }
 
 function getResultAnimationClass(result) {
-  if (result.goalAchieved) {
-    return "goal-complete";
+  if (result.levelRewards.length > 0) {
+    return "ticket-reward";
   }
 
   if (result.leveledUp) {
     return "level-up";
   }
 
-  if (result.levelRewards.length > 0) {
-    return "ticket-reward";
+  if (result.goalAchieved) {
+    return "goal-complete";
   }
 
   return "sparkle";
 }
 
-function createResultSummary(record, beforeLevel, levelRewards, goalMarked) {
+function createResultSummary(record, beforeTotalExp, levelRewards, goalMarked) {
   const afterTotalExp = calculateTotalExp();
+  const beforeLevel = calculateLevel(beforeTotalExp);
   const afterLevel = calculateLevel(afterTotalExp);
+  const beforeLevelProgress = calculateLevelProgress(beforeTotalExp);
   const levelProgress = calculateLevelProgress(afterTotalExp);
   const todayScore = calculateTodayScore();
   const goalAchieved = todayScore >= getDailyGoalScore();
@@ -2780,9 +2793,85 @@ function createResultSummary(record, beforeLevel, levelRewards, goalMarked) {
     goalAchieved,
     todayScore,
     achievementRate,
+    beforeTotalExp,
     totalExp: afterTotalExp,
+    gainedExp: Number(record.exp || 0),
+    beforeLevelProgress,
+    afterLevelProgress: levelProgress,
     nextLevelRequiredExp: levelProgress.requiredExp
   };
+}
+
+function clearResultAnimationTimers() {
+  resultAnimationTimers.forEach((timerId) => clearTimeout(timerId));
+  resultAnimationTimers = [];
+}
+
+function setResultExpGauge(totalExp, override = {}) {
+  const progress = calculateLevelProgress(totalExp);
+  const percent = Number.isFinite(Number(override.percent))
+    ? Number(override.percent)
+    : Math.min(progress.progressRate * 100, 100);
+  const label = override.label || `${progress.progressExp} / 100 EXP`;
+
+  resultExpGaugeFill.style.width = `${percent}%`;
+  resultExpGaugeLabel.textContent = label;
+}
+
+function buildResultExpAnimationSteps(result) {
+  const steps = [];
+  let level = result.beforeLevel;
+  let cursorExp = result.beforeTotalExp;
+
+  steps.push({
+    totalExp: cursorExp,
+    percent: Math.min(calculateLevelProgress(cursorExp).progressRate * 100, 100),
+    label: `Lv.${level} / ${calculateLevelProgress(cursorExp).progressExp} / 100 EXP`
+  });
+
+  while (level < result.afterLevel) {
+    const levelEndExp = level * 100;
+    steps.push({
+      totalExp: levelEndExp,
+      percent: 100,
+      label: `Lv.${level} / 100 / 100 EXP`
+    });
+    level += 1;
+    cursorExp = levelEndExp;
+    steps.push({
+      totalExp: cursorExp,
+      percent: 0,
+      label: `Lv.${level} / 0 / 100 EXP`
+    });
+  }
+
+  const afterProgress = calculateLevelProgress(result.totalExp);
+  steps.push({
+    totalExp: result.totalExp,
+    percent: Math.min(afterProgress.progressRate * 100, 100),
+    label: `Lv.${result.afterLevel} / ${afterProgress.progressExp} / 100 EXP`
+  });
+
+  return steps;
+}
+
+function animateResultExpGauge(result) {
+  clearResultAnimationTimers();
+  const steps = buildResultExpAnimationSteps(result);
+
+  resultExpGaugeFill.style.transition = "none";
+  setResultExpGauge(result.beforeTotalExp, steps[0]);
+
+  resultAnimationTimers.push(setTimeout(() => {
+    resultExpGaugeFill.style.transition = "";
+
+    steps.slice(1).forEach((step, index) => {
+      const timerId = setTimeout(() => {
+        setResultExpGauge(step.totalExp, step);
+      }, index * 720);
+      resultAnimationTimers.push(timerId);
+    });
+  }, 80));
 }
 
 function renderResultBadges(result) {
@@ -2830,11 +2919,17 @@ function showResultOverlay(result) {
     ? result.goalMarked ? "今日の目標達成！" : "達成済み"
     : "挑戦中";
   resultLevel.textContent = `Lv.${result.afterLevel}`;
+  resultLevelChange.textContent = result.leveledUp
+    ? `Lv.${result.beforeLevel} → Lv.${result.afterLevel}`
+    : `Lv.${result.afterLevel}`;
+  resultExpBefore.textContent = `${result.beforeTotalExp}`;
+  resultExpGain.textContent = `+${result.gainedExp}`;
+  resultExpAfter.textContent = `${result.totalExp}`;
   resultNextLevelExp.textContent = `次のレベルまで ${result.nextLevelRequiredExp} EXP`;
   renderResultBadges(result);
 
   if (result.leveledUp) {
-    bonusMessages.push(`Lv.${result.afterLevel} にアップ！`);
+    bonusMessages.push(`Lv.${result.beforeLevel} → Lv.${result.afterLevel} レベルアップ！`);
   }
 
   if (result.levelRewards.length > 0) {
@@ -2849,11 +2944,14 @@ function showResultOverlay(result) {
   });
 
   resultOverlay.classList.remove("hidden");
+  animateResultExpGauge(result);
 }
 
 function closeResultOverlay() {
+  clearResultAnimationTimers();
   resultOverlay.classList.add("hidden");
   resultScreen.classList.remove("goal-complete", "level-up", "ticket-reward", "sparkle");
+  resultExpGaugeFill.style.transition = "";
   setTrainerImage(homeTrainerImage, "default");
 }
 
@@ -3096,7 +3194,7 @@ function saveTodayRecord() {
   const amount = getRecordAmount();
   const effort = getSelectedEffort();
   const savedElapsedSeconds = elapsedSeconds;
-  const beforeLevel = calculateLevel(calculateTotalExp());
+  const beforeTotalExp = calculateTotalExp();
   const errorMessage = validateRecord(exercise, amount, recordType);
 
   if (errorMessage !== "") {
@@ -3115,7 +3213,7 @@ function saveTodayRecord() {
   saveRecords();
   const goalMarked = markGoalRewardIfNeeded();
   const levelRewards = claimLevelRewardsIfNeeded();
-  const result = createResultSummary(record, beforeLevel, levelRewards, goalMarked);
+  const result = createResultSummary(record, beforeTotalExp, levelRewards, goalMarked);
   renderHistory();
   updateAllStats();
   resetTimer();

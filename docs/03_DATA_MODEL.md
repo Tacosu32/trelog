@@ -415,3 +415,9 @@ localStorageに `trelog_counseling` として保存する。
 - `appliedScoringConfig` は「この設定を適用」時点のスコア設定。
 - 実際の今後のスコア計算には、従来通り `trelog_dev_scoring_config` と `trelog_state.evaluationProfile` を使う。
 - バックアップJSONの `localStorage` セクションに `trelog_counseling` を含める。古いバックアップに存在しない場合は未設定として扱う。
+# 2026-06-10 追記: リザルトEXP演出と保存データ
+
+- リザルトEXPゲージのアニメーション状態は一時的な画面状態なので保存しない。
+- 5レベルごとの報酬受け取り状態は、既存の `trelog_state.claimedLevelRewards` を継続して使う。
+- 報酬付与で増えた休憩チケット枚数は、既存の `trelog_state.restTickets` に保存する。
+- バックアップ/復元は既存の `trelog_state` を含むため、追加の保存キーは不要。

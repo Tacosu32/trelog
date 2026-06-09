@@ -760,9 +760,19 @@
 
       <h3 class="result-section-title">成長</h3>
       <section class="result-progress result-progress-single" aria-label="成長">
-        <div>
+        <div class="result-exp-panel">
           <span>レベル</span>
           <strong id="result-level">Lv.1</strong>
+          <small id="result-level-change">Lv.1 → Lv.1</small>
+          <div class="result-exp-details" aria-label="EXP変化">
+            <span>記録前 <strong id="result-exp-before">0</strong></span>
+            <span>獲得 <strong id="result-exp-gain">+0</strong></span>
+            <span>記録後 <strong id="result-exp-after">0</strong></span>
+          </div>
+          <div class="result-exp-gauge" aria-hidden="true">
+            <div id="result-exp-gauge-fill" class="result-exp-gauge-fill"></div>
+          </div>
+          <small id="result-exp-gauge-label">0 / 100 EXP</small>
           <small id="result-next-level-exp">次のレベルまで 100 EXP</small>
         </div>
       </section>

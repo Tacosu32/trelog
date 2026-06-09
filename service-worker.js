@@ -1,4 +1,4 @@
-const CACHE_NAME = "trelog-cache-v0.6.0-dev-scoring-counseling-2026-06-10";
+const CACHE_NAME = "trelog-cache-v0.7.0-dev-result-exp-animation-2026-06-10";
 
 const CORE_ASSETS = [
   "./index.html",
