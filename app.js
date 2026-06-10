@@ -1,6 +1,6 @@
 const DEBUG_MODE = true;
-const APP_VERSION = "0.9.0-dev";
-const APP_BUILD_LABEL = "settings-accordion-2026-06-10";
+const APP_VERSION = "0.10.0-dev";
+const APP_BUILD_LABEL = "custom-trainer-builder-2026-06-10";
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
@@ -162,6 +162,24 @@ const selectedTrainerPreviewImage = document.getElementById("selected-trainer-pr
 const selectedTrainerStatus = document.getElementById("selected-trainer-status");
 const customImagePriorityNote = document.getElementById("custom-image-priority-note");
 const applyTrainerButton = document.getElementById("apply-trainer-button");
+const customTrainerProfileStatus = document.getElementById("custom-trainer-profile-status");
+const customTrainerNameInput = document.getElementById("custom-trainer-name");
+const customTrainerDescriptionInput = document.getElementById("custom-trainer-description");
+const customTrainerToneTypeSelect = document.getElementById("custom-trainer-tone-type");
+const customTrainerFirstPersonSelect = document.getElementById("custom-trainer-first-person");
+const customTrainerFirstPersonFreeRow = document.getElementById("custom-trainer-first-person-free-row");
+const customTrainerFirstPersonFreeInput = document.getElementById("custom-trainer-first-person-free");
+const customTrainerUserCallSelect = document.getElementById("custom-trainer-user-call-name");
+const customTrainerUserCallFreeRow = document.getElementById("custom-trainer-user-call-free-row");
+const customTrainerUserCallFreeInput = document.getElementById("custom-trainer-user-call-free");
+const customTrainerCoachingStyleSelect = document.getElementById("custom-trainer-coaching-style");
+const customTrainerToneTextInput = document.getElementById("custom-trainer-tone-text");
+const previewCustomTrainerButton = document.getElementById("preview-custom-trainer-button");
+const saveCustomTrainerButton = document.getElementById("save-custom-trainer-button");
+const selectCustomTrainerButton = document.getElementById("select-custom-trainer-button");
+const resetCustomTrainerButton = document.getElementById("reset-custom-trainer-button");
+const customTrainerPreviewLines = document.getElementById("custom-trainer-preview-lines");
+const customTrainerBuilderMessage = document.getElementById("custom-trainer-builder-message");
 
 const EXERCISE_DEFINITIONS = {
   pushup: {
@@ -287,6 +305,30 @@ const COUNSELING_GUIDE_AMOUNTS = {
   squat: { time: 5, reps: 60 },
   plank: { time: 1, reps: 0 },
   stretch: { time: 5, reps: 0 }
+};
+const CUSTOM_TRAINER_TONE_LABELS = {
+  gentle: "やさしい",
+  serious: "まじめ",
+  hot: "熱血",
+  cool: "クール",
+  gal: "ギャル",
+  free: "自由入力"
+};
+const CUSTOM_TRAINER_COACHING_LABELS = {
+  gentle_push: "優しく背中を押す",
+  specific: "具体的に指示する",
+  cheerful: "元気に盛り上げる",
+  watchful: "静かに見守る",
+  strict: "厳しめに促す"
+};
+const CUSTOM_TRAINER_PREVIEW_LABELS = {
+  homeNoRecord: "ホーム未記録時",
+  sessionStart: "セッション開始時",
+  paused: "一時停止時",
+  resultDefault: "リザルト通常時",
+  goalReached: "目標達成時",
+  levelUp: "レベルアップ時",
+  restTicket: "休憩チケット使用時"
 };
 const TRAINER_LINES = {
   sessionStart: ({ exerciseName }) => `${exerciseName || "この種目"}、いこう。タイマーは見てるから、今は動きに集中してね。`,
@@ -525,7 +567,199 @@ const trainerImagePaths = {
   rest: "assets/trainer/public/trainer_rest.png"
 };
 
+function isCustomTrainerProfileReady(profile = appState.customTrainerProfile) {
+  return Boolean(profile && profile.id === "custom" && String(profile.name || "").trim());
+}
+
+function getCustomTrainerToneText(profile) {
+  const toneLabel = CUSTOM_TRAINER_TONE_LABELS[profile.toneType] || CUSTOM_TRAINER_TONE_LABELS.gentle;
+  const coachingLabel = CUSTOM_TRAINER_COACHING_LABELS[profile.coachingStyle] || CUSTOM_TRAINER_COACHING_LABELS.gentle_push;
+  return profile.toneType === "free" && profile.customToneText
+    ? `${toneLabel}: ${profile.customToneText}`
+    : `${toneLabel} / ${coachingLabel}`;
+}
+
+function getTonePhrases(profile) {
+  const toneMap = {
+    gentle: {
+      noRecord: "今日はまだ記録がないみたい。少しだけでも大丈夫、一緒に動いてみよ？",
+      start: "一緒に始めよう。無理しすぎず、少しずつ積み上げよ。",
+      paused: "少し休憩しよっか。呼吸を整えたら、また一緒に再開しようね。",
+      resumed: "再開だね。できる分を大事に進めよう。",
+      normal: "記録できたよ。今日の積み上げ、ちゃんと残ったね。",
+      goal: "目標達成だよ。ここまで頑張れたの、すごいね。",
+      level: "レベルアップ！続けてきた力が形になってるよ。",
+      rest: "休憩チケットで継続は守れたよ。今日は軽めでも大丈夫だから、少し動いてみよ？",
+      high: "頑張れてるね。きつい分、呼吸も大事にしよう。",
+      low: "軽めでも大丈夫。続けたことがちゃんと力になるよ。"
+    },
+    serious: {
+      noRecord: "本日はまだ記録がありません。短時間でも構いませんので、まずは開始してみましょう。",
+      start: "開始しましょう。フォームを意識して、無理のない範囲で進めます。",
+      paused: "一時停止しました。呼吸と姿勢を整えてから、再開しましょう。",
+      resumed: "再開します。フォームを意識してください。",
+      normal: "記録が保存されました。継続できています。",
+      goal: "本日の目標を達成しました。良い積み上げです。",
+      level: "レベルアップです。継続の成果が確認できます。",
+      rest: "休憩チケットにより継続は維持されています。本日は短時間でも記録を残しましょう。",
+      high: "負荷が高めです。姿勢と休憩を意識してください。",
+      low: "軽めの負荷でも、記録を残すことに価値があります。"
+    },
+    hot: {
+      noRecord: "今日はまだだね！まず1セット、気合い入れていこう！",
+      start: "スタートだ！ここから流れを作っていこう！",
+      paused: "よし、いったん休憩！呼吸を整えて、もう一回いくよ！",
+      resumed: "再開だ！ここからもうひと踏ん張り、いこう！",
+      normal: "ナイス記録！この調子で積み上げていこう！",
+      goal: "目標達成！やり切ったね、最高！",
+      level: "レベルアップ！積み重ねが燃えてきたよ！",
+      rest: "休憩チケットで踏ん張ったね！今日は軽くでもいいから、流れを戻していこう！",
+      high: "いい負荷だね！でもフォームは崩さずいこう！",
+      low: "軽めでも前進！流れを戻せば勝ちだよ！"
+    },
+    cool: {
+      noRecord: "今日はまだ未記録。悪くない、今から淡々と片付けよう。",
+      start: "始めよう。今日の分を淡々と積み上げる。",
+      paused: "一時停止。呼吸を整えたら、また続けよう。",
+      resumed: "再開。ペースを戻して、今日の分を片付けよう。",
+      normal: "記録完了。悪くない積み上げだ。",
+      goal: "目標達成。今日の分は片付いたね。",
+      level: "レベルアップ。積み上げは裏切らない。",
+      rest: "休憩チケットで継続は維持できた。今日は軽く流れを戻そう。",
+      high: "負荷は高い。フォームだけは崩さずいこう。",
+      low: "軽めでも記録は記録。淡々と続けよう。"
+    },
+    gal: {
+      noRecord: "今日はまだっぽい！ちょっとだけやっとこ、できたらえらすぎ！",
+      start: "いこいこ！今日も積めたら勝ちだよ！",
+      paused: "いったん休憩しよ！息整えたらまたいけるって！",
+      resumed: "再開しよ！ここからちょい積みしてこ！",
+      normal: "記録できたのえらすぎ！今日もちゃんと積めてる！",
+      goal: "目標達成、まじでえらい！今日の勝ち！",
+      level: "レベルアップきた！積み上げ天才すぎ！",
+      rest: "休憩チケットで継続守れてる！今日は軽く戻せたら勝ち！",
+      high: "負荷高めでえらい！でも無理しすぎ注意ね！",
+      low: "軽めでも全然あり！続いてるのが勝ち！"
+    }
+  };
+
+  const base = toneMap[profile.toneType] || toneMap.gentle;
+
+  if (profile.toneType !== "free" || !profile.customToneText) {
+    return base;
+  }
+
+  return {
+    ...base,
+    noRecord: `${profile.customToneText} 今日はまだ記録がありません。短く始めましょう。`,
+    start: `${profile.customToneText} まずは1セット始めましょう。`,
+    normal: `${profile.customToneText} 記録できました。`
+  };
+}
+
+function applyCoachingStyle(line, profile) {
+  const userName = profile.userCallName || "あなた";
+  const firstPerson = profile.firstPerson || "私";
+  const coachingSuffix = {
+    gentle_push: "無理しすぎず、続けることを大事にしよう。",
+    specific: "呼吸、姿勢、ペースをひとつずつ確認しよう。",
+    cheerful: "この調子で気分を上げていこう！",
+    watchful: "焦らず、できる分を静かに積み上げよう。",
+    strict: "短くてもいいから、今日の記録は残そう。"
+  }[profile.coachingStyle] || "";
+
+  return `${userName}、${line}${coachingSuffix ? ` ${coachingSuffix}` : ""} ${firstPerson}が見てるよ。`;
+}
+
+function buildCustomTrainerLines(profile) {
+  const phrases = getTonePhrases(profile);
+  const line = (key) => (context = {}) => applyCoachingStyle(phrases[key], { ...profile, ...context });
+
+  return {
+    home: {
+      morning: line("start"),
+      afternoon: line("start"),
+      night: line("noRecord"),
+      noTodayRecord: line("noRecord"),
+      noTodayRecordNight: line("noRecord"),
+      todayRecorded: line("normal"),
+      goalReached: line("goal"),
+      almostGoal: line("start"),
+      noRestTickets: line("noRecord"),
+      lowRestTickets: line("low"),
+      recentRestTicketUsed: line("rest"),
+      streakProtected: ({ streakDays }) => applyCoachingStyle(`${streakDays}日連続で継続を守れています。`, profile),
+      streakGrowing: ({ streakDays }) => applyCoachingStyle(`${streakDays}日連続まで伸びています。`, profile),
+      default: line("start")
+    },
+    session: {
+      sessionStart: ({ exerciseName }) => applyCoachingStyle(`${exerciseName || "この種目"}、${phrases.start}`, profile),
+      elapsed10: () => applyCoachingStyle("10秒経過。いい入りです。", profile),
+      elapsed30: () => applyCoachingStyle("30秒経過。ペースを整えて続けよう。", profile),
+      elapsed60: () => applyCoachingStyle("60秒到達。ここまで積めています。", profile),
+      paused: line("paused"),
+      resumed: line("resumed"),
+      highIntensity: line("high"),
+      lowIntensity: line("low"),
+      projectedGoalReached: line("goal"),
+      repsInput: ({ sessionReps }) => applyCoachingStyle(`${sessionReps}回、入力できています。`, profile)
+    },
+    result: {
+      default: line("normal"),
+      goalReached: line("goal"),
+      alreadyGoalReached: line("goal"),
+      levelUp: line("level"),
+      reward: line("rest"),
+      lowIntensity: line("low"),
+      highIntensity: line("high"),
+      highScore: line("goal")
+    },
+    rest: {
+      usedDay: line("rest"),
+      autoUsed: line("rest"),
+      protected: line("rest"),
+      missedWarning: line("noRecord"),
+      streakGrew: ({ streakDays }) => applyCoachingStyle(`${streakDays}日連続に伸びました。`, profile)
+    }
+  };
+}
+
+function getCustomTrainerPreset(profile = appState.customTrainerProfile) {
+  if (!isCustomTrainerProfileReady(profile)) {
+    return null;
+  }
+
+  return {
+    id: "custom",
+    name: profile.name,
+    description: profile.description || "自分で作成したカスタムトレーナーです。",
+    toneType: getCustomTrainerToneText(profile),
+    images: trainerImagePaths,
+    lines: buildCustomTrainerLines(profile)
+  };
+}
+
+function getAvailableTrainers() {
+  const customTrainer = getCustomTrainerPreset();
+  return customTrainer
+    ? [...Object.values(TRAINER_PRESETS), customTrainer]
+    : Object.values(TRAINER_PRESETS);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function getTrainerId(trainerId) {
+  if (trainerId === "custom") {
+    return isCustomTrainerProfileReady() ? "custom" : DEFAULT_TRAINER_ID;
+  }
+
   return TRAINER_PRESETS[trainerId] ? trainerId : DEFAULT_TRAINER_ID;
 }
 
@@ -534,7 +768,10 @@ function getSelectedTrainerId() {
 }
 
 function getSelectedTrainer() {
-  return TRAINER_PRESETS[getSelectedTrainerId()];
+  const trainerId = getSelectedTrainerId();
+  return trainerId === "custom"
+    ? getCustomTrainerPreset()
+    : TRAINER_PRESETS[trainerId];
 }
 
 function getTrainerLineGroup(groupName, baseLines = {}) {
@@ -870,7 +1107,14 @@ function setPresetTrainerPreviewImage(imageElement, trainerId, context = "defaul
     return;
   }
 
-  const trainer = TRAINER_PRESETS[getTrainerId(trainerId)];
+  const trainer = trainerId === "custom"
+    ? getCustomTrainerPreset()
+    : TRAINER_PRESETS[getTrainerId(trainerId)];
+
+  if (!trainer) {
+    setPresetTrainerPreviewImage(imageElement, DEFAULT_TRAINER_ID, context);
+    return;
+  }
 
   if (
     imageElement.dataset.trainerPreviewId === trainer.id
@@ -920,7 +1164,19 @@ function updateTrainerSelectionPreview(trainerId = getSelectedTrainerId()) {
     return;
   }
 
-  const trainer = TRAINER_PRESETS[getTrainerId(trainerId)];
+  const trainer = trainerId === "custom"
+    ? getCustomTrainerPreset()
+    : TRAINER_PRESETS[getTrainerId(trainerId)];
+
+  if (!trainer) {
+    selectedTrainerName.textContent = "カスタムトレーナー（未作成）";
+    selectedTrainerTone.textContent = "口調: 未作成";
+    selectedTrainerDescription.textContent = "保存すると選択できるようになります。";
+    selectedTrainerStatus.textContent = `選択中: ${getSelectedTrainer().name}`;
+    setPresetTrainerPreviewImage(selectedTrainerPreviewImage, DEFAULT_TRAINER_ID, "default");
+    return;
+  }
+
   selectedTrainerName.textContent = trainer.name;
   selectedTrainerTone.textContent = `口調: ${trainer.toneType}`;
   selectedTrainerDescription.textContent = trainer.description;
@@ -934,15 +1190,31 @@ function renderTrainerSelectionPanel() {
   }
 
   const selectedTrainerId = getSelectedTrainerId();
-  trainerSelect.innerHTML = Object.values(TRAINER_PRESETS)
-    .map((trainer) => `<option value="${trainer.id}">${trainer.name} / ${trainer.toneType}</option>`)
-    .join("");
+  const customTrainer = getCustomTrainerPreset();
+  const customOption = customTrainer
+    ? `<option value="custom">${escapeHtml(customTrainer.name)} / ${escapeHtml(customTrainer.toneType)}</option>`
+    : `<option value="custom">カスタムトレーナー / 未作成</option>`;
+
+  trainerSelect.innerHTML = [
+    ...Object.values(TRAINER_PRESETS)
+      .map((trainer) => `<option value="${trainer.id}">${escapeHtml(trainer.name)} / ${escapeHtml(trainer.toneType)}</option>`),
+    customOption
+  ].join("");
   trainerSelect.value = selectedTrainerId;
   updateTrainerSelectionPreview(selectedTrainerId);
 }
 
 function applySelectedTrainer() {
   const trainerId = getTrainerId(trainerSelect.value);
+
+  if (trainerSelect.value === "custom" && trainerId !== "custom") {
+    appState.selectedTrainerId = DEFAULT_TRAINER_ID;
+    saveState();
+    renderTrainerSelectionPanel();
+    showMessage("カスタムトレーナーは未作成です。先に保存してください。", false);
+    return;
+  }
+
   appState.selectedTrainerId = trainerId;
   saveState();
   renderTrainerSelectionPanel();
@@ -955,6 +1227,223 @@ function applySelectedTrainer() {
   updateSessionDisplay();
   updateDebugStorageOutput();
   showMessage(`${getSelectedTrainer().name}をトレーナーに設定しました。`, true);
+}
+
+function normalizeCustomTrainerProfile(profile) {
+  if (!profile || typeof profile !== "object") {
+    return null;
+  }
+
+  const firstPerson = profile.firstPerson === "free"
+    ? String(profile.firstPersonFree || "").trim()
+    : String(profile.firstPerson || "").trim();
+  const userCallName = profile.userCallName === "free"
+    ? String(profile.userCallNameFree || "").trim()
+    : String(profile.userCallName || "").trim();
+  const normalized = {
+    id: "custom",
+    name: String(profile.name || "").trim().slice(0, 24),
+    description: String(profile.description || "").trim().slice(0, 120),
+    toneType: CUSTOM_TRAINER_TONE_LABELS[profile.toneType] ? profile.toneType : "gentle",
+    firstPerson: firstPerson.slice(0, 12) || "私",
+    firstPersonChoice: profile.firstPersonChoice || profile.firstPerson || "私",
+    firstPersonFree: String(profile.firstPersonFree || "").trim().slice(0, 12),
+    userCallName: userCallName.slice(0, 16) || "あなた",
+    userCallNameChoice: profile.userCallNameChoice || profile.userCallName || "あなた",
+    userCallNameFree: String(profile.userCallNameFree || "").trim().slice(0, 16),
+    coachingStyle: CUSTOM_TRAINER_COACHING_LABELS[profile.coachingStyle] ? profile.coachingStyle : "gentle_push",
+    customToneText: String(profile.customToneText || "").trim().slice(0, 140),
+    previewLines: profile.previewLines && typeof profile.previewLines === "object" ? profile.previewLines : {}
+  };
+
+  if (!normalized.name) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function getCustomTrainerProfileFromForm() {
+  const firstPersonChoice = customTrainerFirstPersonSelect?.value || "私";
+  const userCallNameChoice = customTrainerUserCallSelect?.value || "あなた";
+  const profile = normalizeCustomTrainerProfile({
+    name: customTrainerNameInput?.value,
+    description: customTrainerDescriptionInput?.value,
+    toneType: customTrainerToneTypeSelect?.value,
+    firstPerson: firstPersonChoice === "free" ? "free" : firstPersonChoice,
+    firstPersonChoice,
+    firstPersonFree: customTrainerFirstPersonFreeInput?.value,
+    userCallName: userCallNameChoice === "free" ? "free" : userCallNameChoice,
+    userCallNameChoice,
+    userCallNameFree: customTrainerUserCallFreeInput?.value,
+    coachingStyle: customTrainerCoachingStyleSelect?.value,
+    customToneText: customTrainerToneTextInput?.value
+  });
+
+  if (!profile) {
+    return null;
+  }
+
+  profile.previewLines = getCustomTrainerPreviewLines(profile);
+  return profile;
+}
+
+function getCustomTrainerPreviewLines(profile) {
+  const lines = buildCustomTrainerLines(profile);
+  return {
+    homeNoRecord: lines.home.noTodayRecord({}),
+    sessionStart: lines.session.sessionStart({ exerciseName: "スクワット" }),
+    paused: lines.session.paused({}),
+    resultDefault: lines.result.default({}),
+    goalReached: lines.result.goalReached({}),
+    levelUp: lines.result.levelUp({}),
+    restTicket: lines.rest.autoUsed({})
+  };
+}
+
+function updateCustomTrainerFreeRows() {
+  if (customTrainerFirstPersonFreeRow) {
+    customTrainerFirstPersonFreeRow.classList.toggle("hidden", customTrainerFirstPersonSelect?.value !== "free");
+  }
+
+  if (customTrainerUserCallFreeRow) {
+    customTrainerUserCallFreeRow.classList.toggle("hidden", customTrainerUserCallSelect?.value !== "free");
+  }
+}
+
+function renderCustomTrainerPreview(profile = getCustomTrainerProfileFromForm() || appState.customTrainerProfile) {
+  if (!customTrainerPreviewLines) {
+    return;
+  }
+
+  const normalized = normalizeCustomTrainerProfile(profile) || {
+    id: "custom",
+    name: "カスタム",
+    description: "",
+    toneType: customTrainerToneTypeSelect?.value || "gentle",
+    firstPerson: "私",
+    userCallName: "あなた",
+    coachingStyle: customTrainerCoachingStyleSelect?.value || "gentle_push",
+    customToneText: customTrainerToneTextInput?.value || ""
+  };
+  const previewLines = getCustomTrainerPreviewLines(normalized);
+
+  customTrainerPreviewLines.innerHTML = Object.entries(previewLines)
+    .map(([key, line]) => `<div><dt>${escapeHtml(CUSTOM_TRAINER_PREVIEW_LABELS[key] || key)}</dt><dd>${escapeHtml(line)}</dd></div>`)
+    .join("");
+}
+
+function fillCustomTrainerForm(profile = appState.customTrainerProfile) {
+  const normalized = normalizeCustomTrainerProfile(profile);
+
+  if (customTrainerNameInput) {
+    customTrainerNameInput.value = normalized?.name || "";
+  }
+
+  if (customTrainerDescriptionInput) {
+    customTrainerDescriptionInput.value = normalized?.description || "";
+  }
+
+  if (customTrainerToneTypeSelect) {
+    customTrainerToneTypeSelect.value = normalized?.toneType || "gentle";
+  }
+
+  if (customTrainerFirstPersonSelect) {
+    customTrainerFirstPersonSelect.value = normalized?.firstPersonChoice === "free" ? "free" : normalized?.firstPerson || "私";
+  }
+
+  if (customTrainerFirstPersonFreeInput) {
+    customTrainerFirstPersonFreeInput.value = normalized?.firstPersonFree || "";
+  }
+
+  if (customTrainerUserCallSelect) {
+    customTrainerUserCallSelect.value = normalized?.userCallNameChoice === "free" ? "free" : normalized?.userCallName || "あなた";
+  }
+
+  if (customTrainerUserCallFreeInput) {
+    customTrainerUserCallFreeInput.value = normalized?.userCallNameFree || "";
+  }
+
+  if (customTrainerCoachingStyleSelect) {
+    customTrainerCoachingStyleSelect.value = normalized?.coachingStyle || "gentle_push";
+  }
+
+  if (customTrainerToneTextInput) {
+    customTrainerToneTextInput.value = normalized?.customToneText || "";
+  }
+
+  updateCustomTrainerFreeRows();
+  renderCustomTrainerPreview(normalized);
+}
+
+function renderCustomTrainerBuilder() {
+  const profile = normalizeCustomTrainerProfile(appState.customTrainerProfile);
+
+  if (customTrainerProfileStatus) {
+    customTrainerProfileStatus.textContent = profile ? "作成済み" : "未作成";
+    customTrainerProfileStatus.classList.toggle("active", Boolean(profile));
+  }
+
+  if (selectCustomTrainerButton) {
+    selectCustomTrainerButton.disabled = !profile;
+  }
+
+  renderCustomTrainerPreview(profile);
+}
+
+function saveCustomTrainerProfile() {
+  const profile = getCustomTrainerProfileFromForm();
+
+  if (!profile) {
+    if (customTrainerBuilderMessage) {
+      customTrainerBuilderMessage.textContent = "トレーナー名を入力してください。";
+    }
+    showMessage("カスタムトレーナー名を入力してください。", false);
+    return;
+  }
+
+  appState.customTrainerProfile = profile;
+  saveState();
+  renderTrainerSelectionPanel();
+  renderCustomTrainerBuilder();
+  updateAllStats();
+
+  if (customTrainerBuilderMessage) {
+    customTrainerBuilderMessage.textContent = `${profile.name}を保存しました。`;
+  }
+
+  showMessage("カスタムトレーナーを保存しました。", true);
+}
+
+function selectCustomTrainerProfile() {
+  if (!isCustomTrainerProfileReady()) {
+    showMessage("カスタムトレーナーは未作成です。先に保存してください。", false);
+    return;
+  }
+
+  appState.selectedTrainerId = "custom";
+  saveState();
+  renderTrainerSelectionPanel();
+  updateTrainerImages({ home: "default", session: timerState === "paused" ? "rest" : "cheer", result: "result" });
+  updateAllStats();
+  updateSessionDisplay();
+  showMessage(`${getSelectedTrainer().name}をトレーナーに設定しました。`, true);
+}
+
+function resetCustomTrainerProfile() {
+  appState.customTrainerProfile = null;
+
+  if (appState.selectedTrainerId === "custom") {
+    appState.selectedTrainerId = DEFAULT_TRAINER_ID;
+  }
+
+  saveState();
+  fillCustomTrainerForm(null);
+  renderTrainerSelectionPanel();
+  renderCustomTrainerBuilder();
+  updateTrainerImages({ home: "default", session: timerState === "paused" ? "rest" : "cheer", result: "result" });
+  updateAllStats();
+  showMessage("カスタムトレーナー設定をリセットしました。", true);
 }
 
 function cloneScoringConfig(config) {
@@ -2959,6 +3448,7 @@ function getDefaultState() {
     claimedLevelRewards: [],
     evaluationProfile: "standard",
     selectedTrainerId: DEFAULT_TRAINER_ID,
+    customTrainerProfile: null,
     musicLoop: false
   };
 }
@@ -2985,6 +3475,7 @@ function normalizeRestTicketEvents(value) {
 
 function normalizeState(parsedState) {
   const defaultState = getDefaultState();
+  const customTrainerProfile = normalizeCustomTrainerProfile(parsedState.customTrainerProfile);
   const restDateSource = Array.isArray(parsedState.restDates)
     ? parsedState.restDates
     : Array.isArray(parsedState.frozenDates)
@@ -3007,7 +3498,10 @@ function normalizeState(parsedState) {
     evaluationProfile: evaluationProfiles[parsedState.evaluationProfile]
       ? parsedState.evaluationProfile
       : defaultState.evaluationProfile,
-    selectedTrainerId: getTrainerId(parsedState.selectedTrainerId || defaultState.selectedTrainerId),
+    selectedTrainerId: parsedState.selectedTrainerId === "custom" && customTrainerProfile
+      ? "custom"
+      : getTrainerId(parsedState.selectedTrainerId || defaultState.selectedTrainerId),
+    customTrainerProfile,
     musicLoop: Boolean(parsedState.musicLoop ?? defaultState.musicLoop)
   };
 }
@@ -3695,6 +4189,8 @@ async function clearAllData() {
   isDevScoringConfigActive = false;
   renderTrainerImageSettings();
   renderTrainerSelectionPanel();
+  fillCustomTrainerForm();
+  renderCustomTrainerBuilder();
   renderScoringConfigPanel();
   setupCounselingPanel();
   applyMusicLoopSetting();
@@ -4148,6 +4644,8 @@ async function importBackupData(file) {
     saveState();
     renderScoringConfigPanel();
     renderTrainerSelectionPanel();
+    fillCustomTrainerForm();
+    renderCustomTrainerBuilder();
     setupCounselingPanel();
     updateEvaluationProfileDisplay();
     applyMusicLoopSetting();
@@ -4225,6 +4723,8 @@ async function initializeApp() {
   await loadCustomTrainerImage();
   updateTrainerImages({ home: "default", session: "cheer", result: "result" });
   renderTrainerSelectionPanel();
+  fillCustomTrainerForm();
+  renderCustomTrainerBuilder();
   applyMusicLoopSetting();
   updateAppVersionDisplay();
   setupDebugPanel();
@@ -4273,6 +4773,43 @@ discardCounselingButton.addEventListener("click", discardCounselingResult);
 resetCounselingDefaultButton.addEventListener("click", resetCounselingToDefault);
 trainerSelect.addEventListener("change", () => updateTrainerSelectionPreview(trainerSelect.value));
 applyTrainerButton.addEventListener("click", applySelectedTrainer);
+[
+  customTrainerNameInput,
+  customTrainerDescriptionInput,
+  customTrainerToneTypeSelect,
+  customTrainerFirstPersonFreeInput,
+  customTrainerUserCallFreeInput,
+  customTrainerCoachingStyleSelect,
+  customTrainerToneTextInput
+].forEach((element) => {
+  if (element) {
+    element.addEventListener("input", () => renderCustomTrainerPreview());
+  }
+});
+if (customTrainerFirstPersonSelect) {
+  customTrainerFirstPersonSelect.addEventListener("change", () => {
+    updateCustomTrainerFreeRows();
+    renderCustomTrainerPreview();
+  });
+}
+if (customTrainerUserCallSelect) {
+  customTrainerUserCallSelect.addEventListener("change", () => {
+    updateCustomTrainerFreeRows();
+    renderCustomTrainerPreview();
+  });
+}
+if (previewCustomTrainerButton) {
+  previewCustomTrainerButton.addEventListener("click", () => renderCustomTrainerPreview());
+}
+if (saveCustomTrainerButton) {
+  saveCustomTrainerButton.addEventListener("click", saveCustomTrainerProfile);
+}
+if (selectCustomTrainerButton) {
+  selectCustomTrainerButton.addEventListener("click", selectCustomTrainerProfile);
+}
+if (resetCustomTrainerButton) {
+  resetCustomTrainerButton.addEventListener("click", resetCustomTrainerProfile);
+}
 customTrainerSlotElements.forEach((slotElement) => {
   slotElement.querySelector("[data-trainer-slot-input]").addEventListener("change", () => {
     handleCustomTrainerFileChange(slotElement);

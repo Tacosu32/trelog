@@ -500,6 +500,89 @@
       </div>
     </section>
 
+    <section class="panel custom-trainer-builder-panel" aria-labelledby="custom-trainer-builder-title">
+      <div class="section-heading">
+        <h2 id="custom-trainer-builder-title">カスタムトレーナー作成</h2>
+        <span id="custom-trainer-profile-status" class="dev-scoring-status">未作成</span>
+      </div>
+      <p class="settings-description">
+        LLMは使わず、入力内容とテンプレートからセリフを作ります。画像は既存のカスタム画像設定から変更できます。
+      </p>
+      <div class="custom-trainer-form">
+        <label class="field-label" for="custom-trainer-name">トレーナー名</label>
+        <input id="custom-trainer-name" class="text-field" type="text" maxlength="24" placeholder="例：ユイ">
+
+        <label class="field-label" for="custom-trainer-description">説明文</label>
+        <textarea id="custom-trainer-description" class="text-field custom-trainer-textarea" maxlength="120" rows="3" placeholder="例：静かに寄り添って、毎日の継続を支えてくれるトレーナー"></textarea>
+
+        <div class="custom-trainer-grid">
+          <label>
+            <span>口調タイプ</span>
+            <select id="custom-trainer-tone-type" class="select-field">
+              <option value="gentle">やさしい</option>
+              <option value="serious">まじめ</option>
+              <option value="hot">熱血</option>
+              <option value="cool">クール</option>
+              <option value="gal">ギャル</option>
+              <option value="free">自由入力</option>
+            </select>
+          </label>
+          <label>
+            <span>一人称</span>
+            <select id="custom-trainer-first-person" class="select-field">
+              <option value="私">私</option>
+              <option value="わたし">わたし</option>
+              <option value="ボク">ボク</option>
+              <option value="俺">俺</option>
+              <option value="free">自由入力</option>
+            </select>
+          </label>
+          <label id="custom-trainer-first-person-free-row" class="hidden">
+            <span>一人称 自由入力</span>
+            <input id="custom-trainer-first-person-free" class="text-field" type="text" maxlength="12" placeholder="例：あたし">
+          </label>
+          <label>
+            <span>ユーザーの呼び方</span>
+            <select id="custom-trainer-user-call-name" class="select-field">
+              <option value="あなた">あなた</option>
+              <option value="キミ">キミ</option>
+              <option value="君">君</option>
+              <option value="マスター">マスター</option>
+              <option value="free">自由入力</option>
+            </select>
+          </label>
+          <label id="custom-trainer-user-call-free-row" class="hidden">
+            <span>呼び方 自由入力</span>
+            <input id="custom-trainer-user-call-free" class="text-field" type="text" maxlength="16" placeholder="例：相棒">
+          </label>
+          <label>
+            <span>励まし方</span>
+            <select id="custom-trainer-coaching-style" class="select-field">
+              <option value="gentle_push">優しく背中を押す</option>
+              <option value="specific">具体的に指示する</option>
+              <option value="cheerful">元気に盛り上げる</option>
+              <option value="watchful">静かに見守る</option>
+              <option value="strict">厳しめに促す</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="field-label" for="custom-trainer-tone-text">自由入力の口調メモ</label>
+        <textarea id="custom-trainer-tone-text" class="text-field custom-trainer-textarea" maxlength="140" rows="3" placeholder="自由入力を選んだ場合の話し方メモ。例：短く、落ち着いた言い方。語尾はやわらかめ。"></textarea>
+      </div>
+      <div class="settings-actions">
+        <button id="preview-custom-trainer-button" class="secondary-button" type="button">プレビュー更新</button>
+        <button id="save-custom-trainer-button" class="save-button" type="button">カスタムトレーナーを保存</button>
+        <button id="select-custom-trainer-button" class="secondary-button" type="button">カスタムトレーナーを選択</button>
+        <button id="reset-custom-trainer-button" class="secondary-button" type="button">設定をリセット</button>
+      </div>
+      <div class="custom-trainer-preview-lines" aria-live="polite">
+        <h3>口調プレビュー</h3>
+        <dl id="custom-trainer-preview-lines"></dl>
+      </div>
+      <p id="custom-trainer-builder-message" class="settings-description"></p>
+    </section>
+
     <section class="panel trainer-settings-panel" aria-labelledby="trainer-settings-title">
       <div class="section-heading">
         <h2 id="trainer-settings-title">トレーナー画像設定</h2>

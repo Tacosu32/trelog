@@ -515,3 +515,39 @@ localStorageに `trelog_counseling` として保存する。
 
 - カスタム画像優先はIndexedDB `trainer_images` の `custom_default`、`custom_cheer`、`custom_result`、`custom_rest` の有無で決まる表示仕様であり、現時点では追加の永続設定を持たない。
 - カスタム画像本体とメタ情報は従来通り軽量/完全バックアップの `trainerImages` に含める。
+# 2026-06-10 追記 trelog_state.customTrainerProfile
+
+カスタムトレーナー作成 v1 では、作成したプロフィールを `trelog_state.customTrainerProfile` に保存する。
+
+```json
+{
+  "id": "custom",
+  "name": "ユイ",
+  "description": "自分で作成したトレーナー",
+  "toneType": "gentle",
+  "firstPerson": "私",
+  "firstPersonChoice": "私",
+  "firstPersonFree": "",
+  "userCallName": "あなた",
+  "userCallNameChoice": "あなた",
+  "userCallNameFree": "",
+  "coachingStyle": "gentle_push",
+  "customToneText": "",
+  "previewLines": {
+    "homeNoRecord": "...",
+    "sessionStart": "...",
+    "paused": "...",
+    "resultDefault": "...",
+    "goalReached": "...",
+    "levelUp": "...",
+    "restTicket": "..."
+  }
+}
+```
+
+- `toneType` は `gentle`、`serious`、`hot`、`cool`、`gal`、`free` のいずれか。
+- `coachingStyle` は `gentle_push`、`specific`、`cheerful`、`watchful`、`strict` のいずれか。
+- `selectedTrainerId` が `"custom"` の場合、`customTrainerProfile` が有効ならカスタムトレーナーとして扱う。
+- `customTrainerProfile` がない、または名前が空の場合は、`selectedTrainerId` が `"custom"` でも既定トレーナーへフォールバックする。
+- カスタム画像4差分は既存どおりIndexedDB `trainer_images` の `custom_default`、`custom_cheer`、`custom_result`、`custom_rest` を使う。
+- バックアップ/復元では既存の `trelog_state` に含まれるため、`customTrainerProfile` も保持される。

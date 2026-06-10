@@ -1140,6 +1140,77 @@ input[type="radio"] {
   font-size: 1.05rem;
 }
 
+.custom-trainer-builder-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.custom-trainer-form {
+  display: grid;
+  gap: 10px;
+}
+
+.custom-trainer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.custom-trainer-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.custom-trainer-textarea {
+  min-height: 78px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.custom-trainer-preview-lines {
+  display: grid;
+  gap: 8px;
+  border-radius: 8px;
+  background: #fff6ec;
+  padding: 12px;
+}
+
+.custom-trainer-preview-lines h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.custom-trainer-preview-lines dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.custom-trainer-preview-lines dl > div {
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid #ead9cb;
+  padding-top: 8px;
+}
+
+.custom-trainer-preview-lines dt {
+  color: #9a3830;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.custom-trainer-preview-lines dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
 .custom-trainer-slots {
   display: grid;
   gap: 12px;
@@ -2236,6 +2307,7 @@ input[type="radio"] {
   .result-exp-details,
   .trainer-selection-preview,
   .custom-trainer-preview,
+  .custom-trainer-grid,
   .settings-basic-grid,
   .settings-actions,
   .counseling-grid,
