@@ -665,6 +665,145 @@ input[type="radio"] {
   line-height: 1.55;
 }
 
+.settings-accordion {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-section {
+  overflow: hidden;
+  border: 1px solid #ead9cb;
+  border-radius: 8px;
+  background: #fffaf4;
+}
+
+.settings-section[data-settings-section="basic"] {
+  order: 1;
+}
+
+.settings-section[data-settings-section="trainer"] {
+  order: 2;
+}
+
+.settings-section[data-settings-section="counseling"] {
+  order: 3;
+}
+
+.settings-section[data-settings-section="scoring"] {
+  order: 4;
+}
+
+.settings-section[data-settings-section="data"] {
+  order: 5;
+}
+
+.settings-section[data-settings-section="app-update"] {
+  order: 6;
+}
+
+.settings-section[data-settings-section="debug"] {
+  order: 7;
+}
+
+.settings-section[open] {
+  background: #fffdf9;
+  box-shadow: 0 12px 28px rgba(93, 69, 49, 0.08);
+}
+
+.settings-section-summary {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.settings-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-section-summary::after {
+  flex: 0 0 auto;
+  content: "開く";
+  min-width: 42px;
+  border-radius: 999px;
+  background: #f2e6dc;
+  color: #7a4b34;
+  padding: 6px 9px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.settings-section[open] .settings-section-summary::after {
+  content: "閉じる";
+  background: #ffd7c4;
+  color: #8f2f2f;
+}
+
+.settings-section-title {
+  display: grid;
+  gap: 3px;
+}
+
+.settings-section-title strong {
+  color: var(--ink);
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.settings-section-title small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.settings-section-body {
+  display: grid;
+  gap: 12px;
+  padding: 0 10px 12px;
+}
+
+.settings-section-body > .panel,
+.settings-section-body > .debug-panel {
+  margin: 0;
+}
+
+.settings-basic-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-basic-item {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border-radius: 8px;
+  background: #fff6ec;
+  padding: 10px;
+}
+
+.settings-basic-item span,
+.settings-basic-item small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.settings-basic-item strong {
+  color: #9a3830;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .app-version-text,
 .app-version-footer {
   color: var(--muted);
@@ -2097,6 +2236,7 @@ input[type="radio"] {
   .result-exp-details,
   .trainer-selection-preview,
   .custom-trainer-preview,
+  .settings-basic-grid,
   .settings-actions,
   .counseling-grid,
   .counseling-menu-groups,

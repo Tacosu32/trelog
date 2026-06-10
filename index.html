@@ -225,6 +225,15 @@
         <h2 id="settings-view-title">設定</h2>
       </div>
 
+    <div class="settings-accordion">
+      <details class="settings-section" data-settings-section="app-update">
+        <summary class="settings-section-summary">
+          <span class="settings-section-title">
+            <strong>アプリ更新</strong>
+            <small>バージョン確認とキャッシュ更新</small>
+          </span>
+        </summary>
+        <div class="settings-section-body">
     <section class="panel app-info-panel" aria-labelledby="app-info-title">
       <div class="section-heading">
         <h2 id="app-info-title">アプリ情報</h2>
@@ -240,6 +249,34 @@
         <button id="check-app-update-button" class="secondary-button" type="button">アプリ更新を確認</button>
       </div>
       <p id="app-update-status" class="settings-description">サイトデータ削除は記録・設定・カスタム画像も消えるため、通常の更新確認には使わないでください。</p>
+    </section>
+
+        </div>
+      </details>
+      <details class="settings-section" data-settings-section="basic" open>
+        <summary class="settings-section-summary">
+          <span class="settings-section-title">
+            <strong>基本設定</strong>
+            <small>今日の目標スコアと評価プロファイル</small>
+          </span>
+        </summary>
+        <div class="settings-section-body">
+    <section class="panel settings-panel settings-basic-panel" aria-labelledby="basic-settings-title">
+      <div class="section-heading">
+        <h2 id="basic-settings-title">基本設定</h2>
+      </div>
+      <div class="settings-basic-grid">
+        <div class="settings-basic-item">
+          <span>今日の目標スコア</span>
+          <strong id="settings-goal-score-display">100 pt</strong>
+          <small>変更はスコア調整で行えます。</small>
+        </div>
+        <div class="settings-basic-item">
+          <span>現在のビルド</span>
+          <strong id="settings-build-display">トレログ</strong>
+          <small>更新操作は「アプリ更新」にまとめています。</small>
+        </div>
+      </div>
     </section>
 
     <section class="panel settings-panel" aria-labelledby="evaluation-profile-title">
@@ -258,6 +295,16 @@
       </p>
     </section>
 
+        </div>
+      </details>
+      <details class="settings-section" data-settings-section="counseling">
+        <summary class="settings-section-summary">
+          <span class="settings-section-title">
+            <strong>カウンセリング</strong>
+            <small>質問、提案生成、設定適用</small>
+          </span>
+        </summary>
+        <div class="settings-section-body">
     <section class="panel counseling-panel" aria-labelledby="counseling-title">
       <div class="section-heading">
         <h2 id="counseling-title">カウンセリング</h2>
@@ -346,6 +393,16 @@
       <p id="counseling-status" class="settings-description">まだ提案は作成されていません。</p>
     </section>
 
+        </div>
+      </details>
+      <details class="settings-section" data-settings-section="scoring">
+        <summary class="settings-section-summary">
+          <span class="settings-section-title">
+            <strong>スコア調整</strong>
+            <small>係数、目標、プレビュー、JSON</small>
+          </span>
+        </summary>
+        <div class="settings-section-body">
     <section class="panel score-config-panel" aria-labelledby="score-config-title">
       <div class="section-heading">
         <h2 id="score-config-title">スコア調整</h2>
@@ -400,6 +457,16 @@
       </div>
     </section>
 
+        </div>
+      </details>
+      <details class="settings-section" data-settings-section="trainer">
+        <summary class="settings-section-summary">
+          <span class="settings-section-title">
+            <strong>トレーナー設定</strong>
+            <small>選択、説明、カスタム画像</small>
+          </span>
+        </summary>
+        <div class="settings-section-body">
     <section class="panel trainer-selection-panel" aria-labelledby="trainer-selection-title">
       <div class="section-heading">
         <h2 id="trainer-selection-title">トレーナー選択</h2>
@@ -568,6 +635,16 @@
       </p>
     </section>
 
+        </div>
+      </details>
+      <details class="settings-section" data-settings-section="data">
+        <summary class="settings-section-summary">
+          <span class="settings-section-title">
+            <strong>データ管理</strong>
+            <small>バックアップ作成と復元</small>
+          </span>
+        </summary>
+        <div class="settings-section-body">
     <section class="panel backup-panel" aria-labelledby="backup-title">
       <div class="section-heading">
         <h2 id="backup-title">データバックアップ</h2>
@@ -588,9 +665,17 @@
       <p id="backup-status" class="settings-description">通常は軽量バックアップ、端末移行や完全復元には完全バックアップを使ってください。</p>
     </section>
 
+        </div>
+      </details>
+      <details class="settings-section" data-settings-section="debug">
+        <summary class="settings-section-summary">
+          <span class="settings-section-title">
+            <strong>デバッグ</strong>
+            <small>開発者向け操作と保存状態確認</small>
+          </span>
+        </summary>
+        <div class="settings-section-body">
     <section id="debug-panel" class="debug-panel">
-      <details>
-        <summary>開発用デバッグ</summary>
         <div class="debug-actions">
           <button id="debug-clear-records" type="button">記録データを削除</button>
           <button id="debug-clear-state" type="button">状態データを削除</button>
@@ -622,8 +707,10 @@
         </p>
         <p id="debug-app-version" class="settings-description">トレログ</p>
         <pre id="debug-storage-output"></pre>
-      </details>
     </section>
+        </div>
+      </details>
+    </div>
     </section>
     <p id="app-version-footer" class="app-version-footer">トレログ</p>
   </main>

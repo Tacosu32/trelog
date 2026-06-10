@@ -1,4 +1,4 @@
-const CACHE_NAME = "trelog-cache-v0.8.2-dev-trainer-pause-images-2026-06-10";
+const CACHE_NAME = "trelog-cache-v0.9.0-dev-settings-accordion-2026-06-10";
 
 const CORE_ASSETS = [
   "./index.html",

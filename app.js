@@ -1,10 +1,11 @@
 const DEBUG_MODE = true;
-const APP_VERSION = "0.8.2-dev";
-const APP_BUILD_LABEL = "trainer-pause-images-2026-06-10";
+const APP_VERSION = "0.9.0-dev";
+const APP_BUILD_LABEL = "settings-accordion-2026-06-10";
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
 const counselingStorageKey = "trelog_counseling";
+const settingsSectionsStateKey = "trelog_settings_sections_state";
 const userAssetsDbName = "trelog_user_assets";
 const trainerImagesStoreName = "trainer_images";
 const legacyCustomTrainerImageKey = "customTrainerImage";
@@ -95,6 +96,9 @@ const importBackupFile = document.getElementById("import-backup-file");
 const backupStatus = document.getElementById("backup-status");
 const appVersionText = document.getElementById("app-version-text");
 const appVersionFooter = document.getElementById("app-version-footer");
+const settingsGoalScoreDisplay = document.getElementById("settings-goal-score-display");
+const settingsBuildDisplay = document.getElementById("settings-build-display");
+const settingsSectionDetails = document.querySelectorAll("[data-settings-section]");
 const debugAppVersion = document.getElementById("debug-app-version");
 const checkAppUpdateButton = document.getElementById("check-app-update-button");
 const appUpdateStatus = document.getElementById("app-update-status");
@@ -2751,9 +2755,68 @@ function updateDashboard() {
   updateLevelProgress(totalExp);
 }
 
+function getDefaultSettingsSectionsState() {
+  return {
+    basic: true,
+    trainer: false,
+    counseling: false,
+    scoring: false,
+    data: false,
+    "app-update": false,
+    debug: false
+  };
+}
+
+function loadSettingsSectionsState() {
+  try {
+    const savedState = JSON.parse(localStorage.getItem(settingsSectionsStateKey) || "{}");
+    return {
+      ...getDefaultSettingsSectionsState(),
+      ...(savedState && typeof savedState === "object" ? savedState : {})
+    };
+  } catch (error) {
+    return getDefaultSettingsSectionsState();
+  }
+}
+
+function saveSettingsSectionsState() {
+  const sectionState = {};
+
+  settingsSectionDetails.forEach((section) => {
+    sectionState[section.dataset.settingsSection] = section.open;
+  });
+
+  localStorage.setItem(settingsSectionsStateKey, JSON.stringify(sectionState));
+}
+
+function setupSettingsSections() {
+  if (!settingsSectionDetails.length) {
+    return;
+  }
+
+  const sectionState = loadSettingsSectionsState();
+
+  settingsSectionDetails.forEach((section) => {
+    const key = section.dataset.settingsSection;
+    section.open = Boolean(sectionState[key]);
+    section.addEventListener("toggle", saveSettingsSectionsState);
+  });
+}
+
+function updateSettingsBasicSummary() {
+  if (settingsGoalScoreDisplay) {
+    settingsGoalScoreDisplay.textContent = `${getDailyGoalScore()} pt`;
+  }
+
+  if (settingsBuildDisplay) {
+    settingsBuildDisplay.textContent = `v${APP_VERSION}`;
+  }
+}
+
 function updateAllStats() {
   updateGoalCard();
   updateDashboard();
+  updateSettingsBasicSummary();
   updateHomeTrainerComment();
   renderRestDates();
   renderRecentRestEvent();
@@ -4158,6 +4221,7 @@ async function initializeApp() {
   appState = loadState();
   saveState();
   todayLabel.textContent = getTodayText();
+  setupSettingsSections();
   await loadCustomTrainerImage();
   updateTrainerImages({ home: "default", session: "cheer", result: "result" });
   renderTrainerSelectionPanel();
