@@ -29,7 +29,7 @@
         </div>
       </div>
       <div class="speech-bubble home-speech-bubble">
-        <span class="home-trainer-label">今日の案内役</span>
+        <span id="home-trainer-label" class="home-trainer-label">今日の案内役</span>
         <p id="trainer-comment">準備できたら、好きな音楽を流して始めよう。今日は軽めでも続けたら勝ちだよ。</p>
       </div>
     </section>
@@ -397,6 +397,39 @@
           <button id="reset-score-config-button" type="button">デフォルトに戻す</button>
         </div>
         <pre id="score-config-json"></pre>
+      </div>
+    </section>
+
+    <section class="panel trainer-selection-panel" aria-labelledby="trainer-selection-title">
+      <div class="section-heading">
+        <h2 id="trainer-selection-title">トレーナー選択</h2>
+        <span id="selected-trainer-status" class="dev-scoring-status">ミナ</span>
+      </div>
+      <p class="settings-description">
+        一緒に続けたいプリセットトレーナーを選べます。カスタム画像を設定している場合、画像はカスタム差分が優先されます。
+      </p>
+      <p id="custom-image-priority-note" class="trainer-priority-note">
+        プリセット画像を表示しています。カスタム画像を設定すると、画像だけカスタム差分が優先されます。
+      </p>
+      <div class="trainer-selection-preview">
+        <div class="trainer-visual trainer-selection-visual" aria-hidden="true">
+          <img id="selected-trainer-preview-image" class="trainer-image hidden" alt="">
+          <div class="trainer-face">
+            <span class="trainer-eye"></span>
+            <span class="trainer-eye"></span>
+            <span class="trainer-smile"></span>
+          </div>
+        </div>
+        <div>
+          <strong id="selected-trainer-name">ミナ</strong>
+          <p id="selected-trainer-tone" class="settings-description">明るく優しい</p>
+          <p id="selected-trainer-description" class="settings-description">やさしい標準トレーナー。</p>
+        </div>
+      </div>
+      <label class="field-label" for="trainer-select">プリセットトレーナー</label>
+      <select id="trainer-select" class="select-field"></select>
+      <div class="settings-actions">
+        <button id="apply-trainer-button" class="save-button" type="button">このトレーナーにする</button>
       </div>
     </section>
 

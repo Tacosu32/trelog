@@ -951,10 +951,54 @@ input[type="radio"] {
   white-space: pre-wrap;
 }
 
+.trainer-selection-panel,
 .trainer-settings-panel,
 .backup-panel {
   display: grid;
   gap: 12px;
+}
+
+.trainer-selection-preview {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.trainer-priority-note {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid rgba(234, 223, 210, 0.95);
+  border-radius: 8px;
+  background: #fff8ec;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.trainer-priority-note.active {
+  border-color: rgba(241, 95, 104, 0.28);
+  background: #fff0e8;
+  color: var(--primary-dark);
+}
+
+.trainer-selection-visual {
+  height: 118px;
+}
+
+.trainer-selection-visual .trainer-image {
+  object-fit: contain;
+}
+
+.trainer-selection-preview strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 1.05rem;
 }
 
 .custom-trainer-slots {
@@ -1655,22 +1699,29 @@ input[type="radio"] {
 .result-exp-gauge {
   height: 16px;
   overflow: hidden;
-  border: 1px solid rgba(42, 124, 111, 0.28);
+  border: 1px solid rgba(207, 195, 181, 0.95);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
+  background-color: #e6dbcf;
+  background-image: linear-gradient(180deg, #f2e8dc 0%, #e6dbcf 100%);
+  box-shadow: inset 0 1px 3px rgba(45, 40, 48, 0.1);
 }
 
 .result-exp-gauge-fill {
+  display: block;
   width: 0%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--secondary), var(--primary));
+  background-color: #e83f52;
+  background-image: linear-gradient(90deg, #d92f45 0%, #f15f68 42%, #ff7a3d 78%, #f3a83b 100%) !important;
+  box-shadow: inset 0 -1px 0 rgba(120, 38, 28, 0.16), 0 0 8px rgba(241, 95, 104, 0.28);
   transition: width 0.62s ease;
 }
 
 .result-screen.level-up .result-exp-gauge-fill,
 .result-screen.ticket-reward .result-exp-gauge-fill {
-  box-shadow: 0 0 18px rgba(241, 95, 104, 0.35);
+  background-color: #ff3f63;
+  background-image: linear-gradient(90deg, #ff3158 0%, #ff6b3d 50%, #ffb338 100%) !important;
+  box-shadow: inset 0 -1px 0 rgba(120, 38, 28, 0.18), 0 0 14px rgba(255, 122, 69, 0.46);
 }
 
 .result-bonus-list {
@@ -2044,6 +2095,7 @@ input[type="radio"] {
   .result-score-grid,
   .result-progress,
   .result-exp-details,
+  .trainer-selection-preview,
   .custom-trainer-preview,
   .settings-actions,
   .counseling-grid,

@@ -1,4 +1,4 @@
-const CACHE_NAME = "trelog-cache-v0.7.0-dev-result-exp-animation-2026-06-10";
+const CACHE_NAME = "trelog-cache-v0.8.2-dev-trainer-pause-images-2026-06-10";
 
 const CORE_ASSETS = [
   "./index.html",
@@ -12,7 +12,19 @@ const OPTIONAL_ASSETS = [
   "./assets/trainer/public/trainer_default.png",
   "./assets/trainer/public/trainer_cheer.png",
   "./assets/trainer/public/trainer_result.png",
-  "./assets/trainer/public/trainer_rest.png"
+  "./assets/trainer/public/trainer_rest.png",
+  "./assets/trainer/public/presets/mina/default.png",
+  "./assets/trainer/public/presets/mina/cheer.png",
+  "./assets/trainer/public/presets/mina/result.png",
+  "./assets/trainer/public/presets/mina/rest.png",
+  "./assets/trainer/public/presets/reika/default.png",
+  "./assets/trainer/public/presets/reika/cheer.png",
+  "./assets/trainer/public/presets/reika/result.png",
+  "./assets/trainer/public/presets/reika/rest.png",
+  "./assets/trainer/public/presets/akari/default.png",
+  "./assets/trainer/public/presets/akari/cheer.png",
+  "./assets/trainer/public/presets/akari/result.png",
+  "./assets/trainer/public/presets/akari/rest.png"
 ];
 
 self.addEventListener("install", (event) => {

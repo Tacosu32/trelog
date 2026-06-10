@@ -1,3 +1,29 @@
+# 2026-06-10 追記 トレーナープリセット画像と休憩コメント
+
+## TRAINER_PRESETS.images
+
+各プリセットトレーナーは、以下の4差分画像パスを持つ。
+
+```js
+images: {
+  default: "assets/trainer/public/presets/{trainerId}/default.png",
+  cheer: "assets/trainer/public/presets/{trainerId}/cheer.png",
+  result: "assets/trainer/public/presets/{trainerId}/result.png",
+  rest: "assets/trainer/public/presets/{trainerId}/rest.png"
+}
+```
+
+- ミナは `trainerId = mina` のパスを使う。
+- レイカは `trainerId = reika` のパスを使う。
+- アカリは `trainerId = akari` のパスを使う。
+- 画像候補の優先順位は、IndexedDBカスタム画像、選択中プリセット画像、同トレーナーの `default.png`、既存public状態別画像、既存public通常画像、CSS仮表示の順にする。
+
+## TRAINER_PRESETS.lines
+
+- 一時停止、再開、休憩チケット使用、休憩チケットで継続を守った日、休憩日、低負荷/休憩寄りコメントは、選択中トレーナーの `lines.session` または `lines.rest` で管理する。
+- コメントの保存データは追加しない。選択中トレーナーIDは既存の `trelog_state.selectedTrainerId` で保持する。
+- バックアップ/復元は既存どおり `trelog_state` と `trainerImages` を対象にするため、今回の画像パス追加による新しいバックアップ項目は不要。
+
 # 03_DATA_MODEL
 
 ## 2026-06-09 追記: 継続チェック状態
@@ -421,3 +447,71 @@ localStorageに `trelog_counseling` として保存する。
 - 5レベルごとの報酬受け取り状態は、既存の `trelog_state.claimedLevelRewards` を継続して使う。
 - 報酬付与で増えた休憩チケット枚数は、既存の `trelog_state.restTickets` に保存する。
 - バックアップ/復元は既存の `trelog_state` を含むため、追加の保存キーは不要。
+# 2026-06-10 追記: トレーナー選択 v1
+
+## trelog_state.selectedTrainerId
+
+- 選択中のプリセットトレーナーIDを `trelog_state.selectedTrainerId` に保存する。
+- 初期値は `default`。
+- 保存値が存在しない、または `TRAINER_PRESETS` に存在しない場合は `default` として扱う。
+- `trelog_state` は既存のバックアップ/復元対象なので、選択中トレーナーIDもバックアップに含まれる。
+
+## TRAINER_PRESETS
+
+プリセットトレーナーは以下の構造で管理する。
+
+```js
+{
+  id: "trainer_energy",
+  name: "アカリ",
+  description: "...",
+  toneType: "元気に背中を押す",
+  images: {
+    default: "...",
+    cheer: "...",
+    result: "...",
+    rest: "..."
+  },
+  lines: {
+    home: {},
+    session: {},
+    result: {},
+    rest: {}
+  }
+}
+```
+
+- `images` は専用画像が未配置でもよく、読み込めない場合はpublic画像へフォールバックする。
+- `lines` は将来のカスタムトレーナーやLLMセリフ差し替えに備え、トレーナーデータに紐づける。
+# 2026-06-10 追記 トレーナー選択 v1 仕上げ
+
+## trelog_state.selectedTrainerId
+
+- 選択中プリセットトレーナーIDを保持する。
+- バックアップ/復元では既存の `trelog_state` に含まれるため、追加のバックアップフィールドは不要。
+- 復元時に存在しないIDが入っている場合は `default` に正規化する。
+
+## TRAINER_PRESETS.lines
+
+各プリセットトレーナーは以下のコメントグループを持つ。
+
+```js
+{
+  lines: {
+    home: {},
+    session: {},
+    result: {},
+    rest: {}
+  }
+}
+```
+
+- `home`: 朝、昼、夜、今日未記録、今日記録済み、目標達成、目標まであと少し、休憩チケット状態、直近の自動消費、連続記録。
+- `session`: 開始、10秒、30秒、60秒、一時停止、再開、高きつさ、低きつさ、目標達成見込み。
+- `result`: 通常記録、今日の目標達成、レベルアップ、5レベル報酬、軽めの記録、高スコア記録。
+- `rest`: 休憩チケット使用日、チケットによる継続保護、未記録注意、継続日数更新。
+
+## Custom Trainer Image Priority
+
+- カスタム画像優先はIndexedDB `trainer_images` の `custom_default`、`custom_cheer`、`custom_result`、`custom_rest` の有無で決まる表示仕様であり、現時点では追加の永続設定を持たない。
+- カスタム画像本体とメタ情報は従来通り軽量/完全バックアップの `trainerImages` に含める。

@@ -1,6 +1,6 @@
 const DEBUG_MODE = true;
-const APP_VERSION = "0.7.0-dev";
-const APP_BUILD_LABEL = "result-exp-animation-2026-06-10";
+const APP_VERSION = "0.8.2-dev";
+const APP_BUILD_LABEL = "trainer-pause-images-2026-06-10";
 const storageKey = "trelog_records";
 const stateStorageKey = "trelog_state";
 const devScoringConfigStorageKey = "trelog_dev_scoring_config";
@@ -16,6 +16,7 @@ const customTrainerSlots = {
 };
 const maxCustomTrainerImageSize = 5 * 1024 * 1024;
 const allowedTrainerImageTypes = ["image/png", "image/jpeg", "image/webp"];
+const DEFAULT_TRAINER_ID = "default";
 
 const musicFileInput = document.getElementById("music-file");
 const musicFileName = document.getElementById("music-file-name");
@@ -148,6 +149,15 @@ const resultOkButton = document.getElementById("result-ok-button");
 const appViews = document.querySelectorAll(".app-view");
 const navButtons = document.querySelectorAll(".nav-button");
 const recordTypeInputs = document.querySelectorAll('input[name="record-type"]');
+const homeTrainerLabel = document.getElementById("home-trainer-label");
+const trainerSelect = document.getElementById("trainer-select");
+const selectedTrainerName = document.getElementById("selected-trainer-name");
+const selectedTrainerDescription = document.getElementById("selected-trainer-description");
+const selectedTrainerTone = document.getElementById("selected-trainer-tone");
+const selectedTrainerPreviewImage = document.getElementById("selected-trainer-preview-image");
+const selectedTrainerStatus = document.getElementById("selected-trainer-status");
+const customImagePriorityNote = document.getElementById("custom-image-priority-note");
+const applyTrainerButton = document.getElementById("apply-trainer-button");
 
 const EXERCISE_DEFINITIONS = {
   pushup: {
@@ -303,6 +313,193 @@ const HOME_TRAINER_LINES = {
   default: () => "準備できたら、好きな音楽を流して始めよう。今日は軽めでも続けたら勝ちだよ。"
 };
 
+const RESULT_TRAINER_LINES = {
+  reward: () => "休憩チケット獲得！がんばった分、休める日もちゃんと守れるよ。",
+  levelUp: () => "レベルアップ！積み重ねが形になってきたよ。",
+  goalReached: () => "今日の目標達成！しっかりやり切れたね。",
+  alreadyGoalReached: () => "今日の目標はもう達成済みだよ。さらに積めたの、すごくいいね。",
+  lowIntensity: () => "軽めでも続けたのがえらいよ。今日の流れ、ちゃんと守れたね。",
+  highIntensity: () => "かなり追い込めたね。休憩も忘れずに！",
+  default: () => "記録できたよ。今日の積み上げ、ちゃんと残ったね。"
+};
+
+const TRAINER_PRESETS = {
+  default: {
+    id: "default",
+    name: "ミナ",
+    description: "やさしい標準トレーナー。毎日の小さな積み上げを明るく応援します。",
+    toneType: "明るく優しい",
+    images: {
+      default: "assets/trainer/public/presets/mina/default.png",
+      cheer: "assets/trainer/public/presets/mina/cheer.png",
+      result: "assets/trainer/public/presets/mina/result.png",
+      rest: "assets/trainer/public/presets/mina/rest.png"
+    },
+    lines: {
+      home: {
+        morning: () => "おはよう！朝のうちに少しだけ、一緒に体を起こしてみよ？",
+        afternoon: () => "お昼のすきまに少し動けたら、今日の流れが作れそうだよ。",
+        night: () => "夜でも短めなら大丈夫。今日の自分に小さく丸をつけよう。",
+        noTodayRecord: () => "今日はまだ記録がないみたい。まずは少しだけ、一緒に動いてみよ？",
+        noTodayRecordNight: () => "今日の分、まだ間に合うよ。1セットだけでも一緒に残しておこう？",
+        todayRecorded: () => "今日の記録、ちゃんと残ってるよ。余裕があればもう少しだけ積んでみよ。",
+        goalReached: () => "今日の目標達成済み！ちゃんと積み上がってるね。",
+        almostGoal: () => "今日の目標まであと少しだよ。無理ない範囲で、もう1セット一緒にいこう。",
+        noRestTickets: () => "休憩チケットが0枚だよ。今日は少しだけでも動いて、継続を守ろうね。",
+        lowRestTickets: () => "休憩チケットが少なめだよ。無理しすぎず、できる分を大事にしよう。",
+        recentRestTicketUsed: () => "休憩チケットで継続を守った日があるよ。今日は軽めに戻していこう。",
+        streakProtected: ({ streakDays }) => `${streakDays}日連続、ちゃんと守れてるよ。この調子で少しずつ続けようね。`,
+        streakGrowing: ({ streakDays }) => `${streakDays}日連続で伸びてるよ。一緒にここまで来られてうれしいな。`
+      },
+      session: {
+        sessionStart: ({ exerciseName }) => `${exerciseName || "この種目"}、いこう。無理なく一緒に進めようね。`,
+        elapsed10: () => "10秒できたよ。呼吸を止めずに、そのまま少しだけ続けよう。",
+        elapsed30: () => "30秒通過！いい感じだよ。フォームを小さく整えていこう。",
+        elapsed60: () => "1分到達！ここまで来られたの、ちゃんと力になってるよ。",
+        paused: () => "少し休憩しよっか。呼吸を整えたら、また一緒に再開しようね。",
+        resumed: () => "よし、再開だね。無理しすぎず、でも少しずつ積み上げよ？",
+        highIntensity: () => "今日はしっかり頑張る日だね。きつい分、休憩も大事にしよう。",
+        lowIntensity: () => "軽めでも続けてるのがえらいよ。休みながら、今日の流れを守ろう。",
+        projectedGoalReached: () => "このまま記録すると今日の目標達成だよ。最後まで一緒にいこう。",
+        repsInput: ({ sessionReps }) => `${sessionReps}回、入力できたよ。きれいに記録へ残そう。`
+      },
+      result: {
+        default: () => "記録できたよ。ちゃんと積み上がってるね。",
+        goalReached: () => "今日の目標達成！しっかりやり切れたね。",
+        alreadyGoalReached: () => "今日の目標はもう達成済みだよ。さらに積めたの、すごくいいね。",
+        levelUp: () => "レベルアップ！積み重ねが形になってきたよ。",
+        reward: () => "休憩チケット獲得！がんばった分、休める日もちゃんと守れるよ。",
+        lowIntensity: () => "軽めでも続けたのがえらいよ。今日の流れ、ちゃんと守れたね。",
+        highIntensity: () => "かなり頑張れたね。終わったあとは休憩も忘れずにね。",
+        highScore: () => "高スコア記録だよ！今日の頑張り、しっかり残ったね。"
+      },
+      rest: {
+        usedDay: () => "休憩チケットを使った日があるよ。休む日も、続ける力の一部だね。",
+        autoUsed: () => "休憩チケットで継続は守れたよ。今日は軽めでも大丈夫だから、少し動いてみよ？",
+        protected: () => "休憩チケットで継続は守れたよ。今日は少しだけ、一緒に戻していこう。",
+        missedWarning: () => "未記録の日が近いみたい。短くてもいいから、今日の記録を残そうね。",
+        streakGrew: ({ streakDays }) => `${streakDays}日連続に伸びたよ。少しずつでも続けてるの、すごいよ。`
+      }
+    }
+  },
+  trainer_calm: {
+    id: "trainer_calm",
+    name: "レイカ",
+    description: "まじめ系トレーナー。落ち着いた声かけで、継続を丁寧に支えます。",
+    toneType: "落ち着いていて丁寧",
+    images: {
+      default: "assets/trainer/public/presets/reika/default.png",
+      cheer: "assets/trainer/public/presets/reika/cheer.png",
+      result: "assets/trainer/public/presets/reika/result.png",
+      rest: "assets/trainer/public/presets/reika/rest.png"
+    },
+    lines: {
+      home: {
+        morning: () => "おはようございます。朝の短い運動から、無理なく始めましょう。",
+        afternoon: () => "午後の前に少し体を動かすと、記録の流れを作りやすくなります。",
+        night: () => "夜の時間帯です。短時間でも構いませんので、記録を整えておきましょう。",
+        noTodayRecord: () => "本日はまだ記録がありません。短時間でも開始してみましょう。",
+        noTodayRecordNight: () => "本日はまだ記録がありません。遅い時間ですので、軽めの内容にしましょう。",
+        todayRecorded: () => "本日の記録は保存されています。余裕があれば、追加で整えていきましょう。",
+        goalReached: () => "本日の目標は達成済みです。良い継続ができています。",
+        almostGoal: () => "目標まであと少しです。無理のない範囲で仕上げましょう。",
+        noRestTickets: () => "休憩チケットがありません。本日は短時間でも記録を残すことを優先しましょう。",
+        lowRestTickets: () => "休憩チケットが少なくなっています。負荷を調整して継続を保ちましょう。",
+        recentRestTicketUsed: () => "休憩チケットで継続を保てています。本日は軽めの再開で十分です。",
+        streakProtected: ({ streakDays }) => `${streakDays}日連続で継続中です。現在の流れを丁寧に維持しましょう。`,
+        streakGrowing: ({ streakDays }) => `連続記録が${streakDays}日まで伸びています。安定した積み上げです。`
+      },
+      session: {
+        sessionStart: ({ exerciseName }) => `${exerciseName || "この種目"}を開始しましょう。フォームを大切に進めます。`,
+        elapsed10: () => "10秒経過しました。呼吸と姿勢を確認しましょう。",
+        elapsed30: () => "30秒経過です。ペースを保てています。",
+        elapsed60: () => "60秒経過しました。ここまでの継続は十分評価できます。",
+        paused: () => "一時停止しました。呼吸と姿勢を整えてから、再開しましょう。",
+        resumed: () => "再開します。無理のない範囲で、フォームを意識してください。",
+        projectedGoalReached: () => "この記録で本日の目標に届く見込みです。最後まで丁寧に進めましょう。",
+        highIntensity: () => "負荷が高めです。姿勢と休憩を意識してください。",
+        lowIntensity: () => "軽めの負荷でも、休息を挟んだ継続として十分価値があります。",
+        repsInput: ({ sessionReps }) => `${sessionReps}回の入力を確認しました。内容を確認して保存しましょう。`
+      },
+      result: {
+        default: () => "記録が保存されました。継続できています。",
+        goalReached: () => "本日の目標を達成しました。良い積み上げです。",
+        alreadyGoalReached: () => "本日の目標は達成済みです。追加の記録として良い内容です。",
+        levelUp: () => "レベルアップです。継続の成果が確認できます。",
+        reward: () => "5レベル報酬として休憩チケットを獲得しました。計画的に活用しましょう。",
+        lowIntensity: () => "軽めの記録です。無理をしない継続として適切です。",
+        highIntensity: () => "高い負荷の記録です。回復時間も確保してください。",
+        highScore: () => "高スコア記録です。現在の取り組みは良い状態です。"
+      },
+      rest: {
+        usedDay: () => "休憩チケット使用日があります。休息も継続計画の一部です。",
+        autoUsed: () => "休憩チケットにより継続は維持されています。本日は短時間でも記録を残しましょう。",
+        protected: () => "休憩チケットにより継続は維持されています。焦らず短時間から戻しましょう。",
+        missedWarning: () => "未記録に注意が必要です。本日は短時間の記録を優先しましょう。",
+        streakGrew: ({ streakDays }) => `継続日数が${streakDays}日まで伸びました。安定しています。`
+      }
+    }
+  },
+  trainer_energy: {
+    id: "trainer_energy",
+    name: "アカリ",
+    description: "熱血系トレーナー。元気な声かけで、最初の一歩を強く後押しします。",
+    toneType: "元気に背中を押す",
+    images: {
+      default: "assets/trainer/public/presets/akari/default.png",
+      cheer: "assets/trainer/public/presets/akari/cheer.png",
+      result: "assets/trainer/public/presets/akari/result.png",
+      rest: "assets/trainer/public/presets/akari/rest.png"
+    },
+    lines: {
+      home: {
+        morning: () => "おはよう！朝から1セット決めたら、今日はいい流れだよ！",
+        afternoon: () => "ここで動けたら強い！午後の勢い、作っていこう！",
+        night: () => "夜でもまだいける！短くても今日の記録を取りにいこう！",
+        noTodayRecord: () => "今日はまだだね！まず1セット、気合い入れていこう！",
+        noTodayRecordNight: () => "今日はまだだね！遅くても1セットならいける、いこう！",
+        todayRecorded: () => "今日の記録は入ってるよ！余力があればもう一押しだ！",
+        goalReached: () => "今日の目標クリア！いい勢いで積み上がってるよ！",
+        almostGoal: () => "あと少し！ここで決めたらかなり熱いよ！",
+        noRestTickets: () => "休憩チケット0枚！今日は短くても継続を守りにいこう！",
+        lowRestTickets: () => "休憩チケット少なめ！攻めすぎず、でも流れは切らさないよ！",
+        recentRestTicketUsed: () => "休憩チケットで継続キープできてる！今日は軽く動いて復帰だ！",
+        streakProtected: ({ streakDays }) => `${streakDays}日連続キープ中！この勢い、今日もつなごう！`,
+        streakGrowing: ({ streakDays }) => `${streakDays}日連続まで伸びた！いいぞ、その調子！`
+      },
+      session: {
+        sessionStart: ({ exerciseName }) => `${exerciseName || "この種目"}、スタート！いい流れ作っていこう！`,
+        elapsed10: () => "10秒突破！いい入りだよ、そのままいこう！",
+        elapsed30: () => "30秒通過！ここからもう一段、粘っていこう！",
+        elapsed60: () => "60秒到達！強い！最後まで勢い切らさずいこう！",
+        paused: () => "よし、いったん休憩！ここで呼吸を整えて、もう一回いくよ！",
+        resumed: () => "再開だ！ここからもうひと踏ん張り、いこう！",
+        projectedGoalReached: () => "このままいけば目標達成！ラストまで押し切ろう！",
+        highIntensity: () => "いい負荷だね！でもフォームは崩さずいこう！",
+        lowIntensity: () => "軽めでも前進！休みながらでも、流れを戻せば勝ちだよ！",
+        repsInput: ({ sessionReps }) => `${sessionReps}回入った！この記録、しっかり残そう！`
+      },
+      result: {
+        default: () => "ナイス記録！この調子で積み上げていこう！",
+        goalReached: () => "今日の目標達成！やり切ったね、最高！",
+        alreadyGoalReached: () => "目標達成後も積めた！その追加分、かなり熱いよ！",
+        levelUp: () => "レベルアップ！積み重ねが爆発してきたよ！",
+        reward: () => "5レベル報酬ゲット！休憩チケット獲得だ、やったね！",
+        lowIntensity: () => "軽めの記録でも勝ち！継続の炎は消えてないよ！",
+        highIntensity: () => "高負荷記録、いいね！今日はしっかり回復までセットだよ！",
+        highScore: () => "高スコア記録！今日の一撃、ばっちり決まったね！"
+      },
+      rest: {
+        usedDay: () => "休憩チケット使用日あり！休む判断も次に進む力だよ！",
+        autoUsed: () => "休憩チケットで踏ん張ったね！今日は軽くでもいいから、流れを戻していこう！",
+        protected: () => "休憩チケットで踏ん張ったね！ここからまた流れを戻していこう！",
+        missedWarning: () => "未記録注意！今ならまだ間に合う、1セットいこう！",
+        streakGrew: ({ streakDays }) => `${streakDays}日連続に伸びた！この勢い、最高だよ！`
+      }
+    }
+  }
+};
+
 let records = [];
 let appState = getDefaultState();
 let scoringConfig = loadScoringConfig();
@@ -318,12 +515,43 @@ let pendingCustomTrainerFiles = {};
 let currentCounselingRecommendation = null;
 let resultAnimationTimers = [];
 const trainerImagePaths = {
-  localPrivate: "assets/trainer/local/trainer_private.png",
   default: "assets/trainer/public/trainer_default.png",
   cheer: "assets/trainer/public/trainer_cheer.png",
   result: "assets/trainer/public/trainer_result.png",
   rest: "assets/trainer/public/trainer_rest.png"
 };
+
+function getTrainerId(trainerId) {
+  return TRAINER_PRESETS[trainerId] ? trainerId : DEFAULT_TRAINER_ID;
+}
+
+function getSelectedTrainerId() {
+  return getTrainerId(appState.selectedTrainerId);
+}
+
+function getSelectedTrainer() {
+  return TRAINER_PRESETS[getSelectedTrainerId()];
+}
+
+function getTrainerLineGroup(groupName, baseLines = {}) {
+  const trainerLines = getSelectedTrainer().lines?.[groupName] || {};
+  return { ...baseLines, ...trainerLines };
+}
+
+function hasCustomTrainerImages() {
+  return Object.keys(customTrainerImages).length > 0;
+}
+
+function getPresetTrainerImageCandidates(context, trainer = getSelectedTrainer()) {
+  const presetPath = trainer.images?.[context];
+  const fallbackPath = trainerImagePaths[context] || trainerImagePaths.default;
+  return Array.from(new Set([
+    presetPath,
+    context === "default" ? null : trainer.images?.default,
+    fallbackPath,
+    context === "default" ? null : trainerImagePaths.default
+  ].filter(Boolean)));
+}
 
 function switchView(viewName) {
   appViews.forEach((view) => {
@@ -342,10 +570,6 @@ function switchView(viewName) {
   });
 
   window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function isLocalDevelopment() {
-  return ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
 }
 
 function openUserAssetsDb() {
@@ -469,6 +693,7 @@ async function loadCustomTrainerImage() {
   }
 
   renderTrainerImageSettings();
+  renderTrainerSelectionPanel();
   updateTrainerImages({
     home: "default",
     session: timerState === "paused" ? "rest" : "cheer",
@@ -518,6 +743,14 @@ function renderTrainerImageSettings() {
     customTrainerStatus.classList.toggle("active", activeCount > 0);
   }
 
+  if (customImagePriorityNote) {
+    const hasCustomImages = hasCustomTrainerImages();
+    customImagePriorityNote.textContent = hasCustomImages
+      ? "カスタム画像が設定されているため、画像はカスタム画像が優先表示されています。トレーナーを切り替えると、名前・説明・口調・セリフが変わります。プリセット画像に戻す場合は、下の画像設定で削除 / デフォルトに戻すか、すべてデフォルトに戻してください。"
+      : "プリセット画像を表示しています。カスタム画像を設定すると、画像だけカスタム差分が優先されます。";
+    customImagePriorityNote.classList.toggle("active", hasCustomImages);
+  }
+
   customTrainerSlotElements.forEach((slotElement) => {
     const slotKey = slotElement.dataset.trainerSlot;
     const slotImage = customTrainerImages[slotKey];
@@ -562,12 +795,9 @@ function getTrainerImageCandidates(context) {
     customTrainerImages[slotKeyByContext[context]]?.url,
     context === "default" ? null : customTrainerImages.custom_default?.url
   ].filter(Boolean);
+  const presetCandidates = getPresetTrainerImageCandidates(context);
 
-  if (context === "default" && isLocalDevelopment()) {
-    return [...customCandidates, trainerImagePaths.localPrivate, ...publicCandidates];
-  }
-
-  return [...customCandidates, ...publicCandidates];
+  return [...customCandidates, ...presetCandidates, ...publicCandidates];
 }
 
 function setTrainerImage(imageElement, context) {
@@ -578,16 +808,19 @@ function setTrainerImage(imageElement, context) {
   const customImageKey = Object.values(customTrainerImages)
     .map((slotImage) => slotImage.url)
     .join("|");
+  const trainerKey = getSelectedTrainerId();
 
   if (
     imageElement.dataset.trainerContext === context
     && imageElement.dataset.trainerCustomImageUrl === customImageKey
+    && imageElement.dataset.trainerPresetId === trainerKey
   ) {
     return;
   }
 
   imageElement.dataset.trainerContext = context;
   imageElement.dataset.trainerCustomImageUrl = customImageKey;
+  imageElement.dataset.trainerPresetId = trainerKey;
   const visual = imageElement.closest(".trainer-visual");
   const candidates = getTrainerImageCandidates(context);
   let candidateIndex = 0;
@@ -626,6 +859,98 @@ function updateTrainerImages(contexts = {}) {
   setTrainerImage(homeTrainerImage, contexts.home || "default");
   setTrainerImage(sessionTrainerImage, contexts.session || "cheer");
   setTrainerImage(resultTrainerImage, contexts.result || "result");
+}
+
+function setPresetTrainerPreviewImage(imageElement, trainerId, context = "default") {
+  if (!imageElement) {
+    return;
+  }
+
+  const trainer = TRAINER_PRESETS[getTrainerId(trainerId)];
+
+  if (
+    imageElement.dataset.trainerPreviewId === trainer.id
+    && imageElement.dataset.trainerPreviewContext === context
+  ) {
+    return;
+  }
+
+  imageElement.dataset.trainerPreviewId = trainer.id;
+  imageElement.dataset.trainerPreviewContext = context;
+  const visual = imageElement.closest(".trainer-visual");
+  const candidates = getPresetTrainerImageCandidates(context, trainer);
+  let candidateIndex = 0;
+
+  function showFallback() {
+    imageElement.removeAttribute("src");
+    imageElement.classList.add("hidden");
+    visual.classList.remove("has-image");
+  }
+
+  function tryCandidate() {
+    const nextPath = candidates[candidateIndex];
+
+    if (!nextPath) {
+      showFallback();
+      return;
+    }
+
+    const testImage = new Image();
+    testImage.onload = () => {
+      imageElement.src = nextPath;
+      imageElement.classList.remove("hidden");
+      visual.classList.add("has-image");
+    };
+    testImage.onerror = () => {
+      candidateIndex += 1;
+      tryCandidate();
+    };
+    testImage.src = nextPath;
+  }
+
+  tryCandidate();
+}
+
+function updateTrainerSelectionPreview(trainerId = getSelectedTrainerId()) {
+  if (!selectedTrainerName || !trainerSelect) {
+    return;
+  }
+
+  const trainer = TRAINER_PRESETS[getTrainerId(trainerId)];
+  selectedTrainerName.textContent = trainer.name;
+  selectedTrainerTone.textContent = `口調: ${trainer.toneType}`;
+  selectedTrainerDescription.textContent = trainer.description;
+  selectedTrainerStatus.textContent = `選択中: ${getSelectedTrainer().name}`;
+  setPresetTrainerPreviewImage(selectedTrainerPreviewImage, trainer.id, "default");
+}
+
+function renderTrainerSelectionPanel() {
+  if (!trainerSelect) {
+    return;
+  }
+
+  const selectedTrainerId = getSelectedTrainerId();
+  trainerSelect.innerHTML = Object.values(TRAINER_PRESETS)
+    .map((trainer) => `<option value="${trainer.id}">${trainer.name} / ${trainer.toneType}</option>`)
+    .join("");
+  trainerSelect.value = selectedTrainerId;
+  updateTrainerSelectionPreview(selectedTrainerId);
+}
+
+function applySelectedTrainer() {
+  const trainerId = getTrainerId(trainerSelect.value);
+  appState.selectedTrainerId = trainerId;
+  saveState();
+  renderTrainerSelectionPanel();
+  updateTrainerImages({
+    home: "default",
+    session: timerState === "paused" ? "rest" : "cheer",
+    result: "result"
+  });
+  updateAllStats();
+  updateSessionDisplay();
+  updateDebugStorageOutput();
+  showMessage(`${getSelectedTrainer().name}をトレーナーに設定しました。`, true);
 }
 
 function cloneScoringConfig(config) {
@@ -854,39 +1179,41 @@ function updateTrainerComment(message) {
 }
 
 function getTrainerLine(context) {
+  const lines = getTrainerLineGroup("session", TRAINER_LINES);
+
   if (context.sessionState === "paused") {
-    return TRAINER_LINES.paused(context);
+    return lines.paused(context);
   }
 
   if (context.projectedGoalReached) {
-    return TRAINER_LINES.projectedGoalReached(context);
+    return lines.projectedGoalReached(context);
   }
 
   if (context.mode === "reps" && Number(context.sessionReps || 0) > 0) {
-    return TRAINER_LINES.repsInput(context);
+    return lines.repsInput(context);
   }
 
   if (context.elapsedSeconds >= 60) {
-    return TRAINER_LINES.elapsed60(context);
+    return lines.elapsed60(context);
   }
 
   if (context.elapsedSeconds >= 30) {
-    return TRAINER_LINES.elapsed30(context);
+    return lines.elapsed30(context);
   }
 
   if (context.elapsedSeconds >= 10) {
-    return TRAINER_LINES.elapsed10(context);
+    return lines.elapsed10(context);
   }
 
   if (Number(context.intensity || 0) >= 4) {
-    return TRAINER_LINES.highIntensity(context);
+    return lines.highIntensity(context);
   }
 
   if (Number(context.intensity || 0) <= 2) {
-    return TRAINER_LINES.lowIntensity(context);
+    return lines.lowIntensity(context);
   }
 
-  return TRAINER_LINES.sessionStart(context);
+  return lines.sessionStart(context);
 }
 
 function getRecentRestTicketEvent(dayRange = 2) {
@@ -911,59 +1238,65 @@ function getCalendarStatus() {
 }
 
 function getHomeTrainerLine(context) {
+  const lines = getTrainerLineGroup("home", HOME_TRAINER_LINES);
+
   if (context.recentRestTicketUsed) {
-    return HOME_TRAINER_LINES.recentRestTicketUsed(context);
+    return lines.recentRestTicketUsed(context);
   }
 
   if (context.goalReached) {
-    return HOME_TRAINER_LINES.goalReached(context);
+    return lines.goalReached(context);
   }
 
   if (context.todayScore > 0 && context.todayScore >= context.dailyGoalScore * 0.75) {
-    return HOME_TRAINER_LINES.almostGoal(context);
+    return lines.almostGoal(context);
   }
 
   if (context.restTickets <= 0) {
-    return HOME_TRAINER_LINES.noRestTickets(context);
+    return lines.noRestTickets(context);
   }
 
   if (context.restTickets <= 1) {
-    return HOME_TRAINER_LINES.lowRestTickets(context);
+    return lines.lowRestTickets(context);
   }
 
   if (!context.hasTodayRecord) {
     if (context.currentHour < 11) {
-      return HOME_TRAINER_LINES.morning(context);
+      return lines.morning(context);
     }
 
     if (context.currentHour < 18) {
-      return HOME_TRAINER_LINES.afternoon(context);
+      return lines.afternoon(context);
     }
 
-    return HOME_TRAINER_LINES.noTodayRecordNight(context);
+    return lines.noTodayRecordNight(context);
   }
 
   if (context.streakDays >= 2 && context.calendarStatus.streakProtected) {
-    return HOME_TRAINER_LINES.streakProtected(context);
+    return lines.streakProtected(context);
   }
 
   if (context.streakDays >= 1) {
-    return HOME_TRAINER_LINES.streakGrowing(context);
+    return lines.streakGrowing(context);
+  }
+
+  if (context.hasTodayRecord) {
+    return lines.todayRecorded(context);
   }
 
   if (context.currentHour < 11) {
-    return HOME_TRAINER_LINES.morning(context);
+    return lines.morning(context);
   }
 
   if (context.currentHour < 18) {
-    return HOME_TRAINER_LINES.afternoon(context);
+    return lines.afternoon(context);
   }
 
   if (context.currentHour >= 18) {
-    return HOME_TRAINER_LINES.night(context);
+    return lines.night(context);
   }
 
-  return HOME_TRAINER_LINES.default(context);
+  return lines.default(context);
 }
 
 function buildHomeTrainerContext() {
@@ -986,6 +1319,9 @@ function buildHomeTrainerContext() {
 }
 
 function updateHomeTrainerComment() {
+  if (homeTrainerLabel) {
+    homeTrainerLabel.textContent = `今日の案内役: ${getSelectedTrainer().name}`;
+  }
   trainerComment.textContent = getHomeTrainerLine(buildHomeTrainerContext());
 }
 
@@ -1108,7 +1444,15 @@ function startTimer() {
   sessionLineOverride = "";
   startWorkoutButton.textContent = "一時停止";
   sessionPauseButton.textContent = "一時停止";
-  updateTrainerComment("スタート！タイマーは任せて、今の種目に集中しよう。");
+  updateTrainerComment(getTrainerLine({
+    sessionState: timerState,
+    elapsedSeconds,
+    exerciseName: getSelectedExercise(),
+    mode: getRecordType(),
+    intensity: getSelectedEffort(),
+    sessionReps: sessionRepsInput.value,
+    projectedGoalReached: false
+  }));
   showMessage("タイマーを開始しました。", true);
   updateSessionDisplay();
 
@@ -1122,10 +1466,10 @@ function startTimer() {
 
 function pauseTimer() {
   timerState = "paused";
-  sessionLineOverride = TRAINER_LINES.paused({});
+  sessionLineOverride = getTrainerLineGroup("session", TRAINER_LINES).paused({});
   startWorkoutButton.textContent = "再開";
   sessionPauseButton.textContent = "再開";
-  updateTrainerComment("一時停止中だよ。息を整えたら再開しよう。");
+  updateTrainerComment(sessionLineOverride);
   showMessage("タイマーを一時停止しました。", true);
   updateSessionDisplay();
 
@@ -1168,7 +1512,7 @@ function handleWorkoutButtonClick() {
   startTimer();
 
   if (wasPaused) {
-    setTemporarySessionLine(TRAINER_LINES.resumed({}));
+    setTemporarySessionLine(getTrainerLineGroup("session", TRAINER_LINES).resumed({}));
     updateTrainerComment(sessionLineOverride);
   }
 }
@@ -1326,7 +1670,7 @@ function handleSessionPauseButtonClick() {
   }
 
   startTimer();
-  setTemporarySessionLine(TRAINER_LINES.resumed({}));
+  setTemporarySessionLine(getTrainerLineGroup("session", TRAINER_LINES).resumed({}));
   updateTrainerComment(sessionLineOverride);
 }
 
@@ -1346,7 +1690,7 @@ function handleSessionSaveButtonClick() {
 function cancelSession() {
   resetTimer();
   closeSessionOverlay();
-  updateTrainerComment("セッションをキャンセルしたよ。準備が整ったらまた始めよう。");
+  updateTrainerComment(getTrainerLineGroup("rest", {}).missedWarning?.({}) || "セッションをキャンセルしたよ。準備が整ったらまた始めよう。");
   showMessage("保存せずにセッションを終了しました。", true);
 }
 
@@ -2140,7 +2484,7 @@ function markGoalRewardIfNeeded() {
 
   appState.claimedGoalRewardDates.push(today);
   saveState();
-  updateTrainerComment("今日の目標達成！休憩チケットは増えないけど、達成記録はしっかり残したよ。すごい！");
+  updateTrainerComment(getTrainerLineGroup("result", RESULT_TRAINER_LINES).goalReached({}));
   return true;
 }
 
@@ -2228,7 +2572,7 @@ function claimLevelRewardsIfNeeded() {
   if (rewardedLevels.length > 0) {
     appState.claimedLevelRewards.sort((a, b) => a - b);
     saveState();
-    updateTrainerComment(`Lv.${rewardedLevels.join("、Lv.")}到達！休憩チケットを${rewardedLevels.length}枚プレゼントしたよ。`);
+    updateTrainerComment(getTrainerLineGroup("result", RESULT_TRAINER_LINES).reward({}));
   }
 
   return rewardedLevels;
@@ -2301,7 +2645,7 @@ function consumeRestTicketsForMissedDays() {
   if (missedRestDates.length > 0) {
     const latestUsedDate = missedRestDates[missedRestDates.length - 1];
     const dateLabel = latestUsedDate === yesterday ? "昨日" : latestUsedDate;
-    updateTrainerComment(`${dateLabel}は休憩チケットで継続を守ったよ。今日は少しだけ動いてみよう！`);
+    updateTrainerComment(`${dateLabel}は${getTrainerLineGroup("rest", {}).autoUsed?.({}) || "休憩チケットで継続を守ったよ。今日は少しだけ動いてみよう！"}`);
   }
 
   return missedRestDates;
@@ -2425,12 +2769,16 @@ function renderRestDates() {
     return;
   }
 
+  const restLine = getTrainerLineGroup("rest", {}).usedDay?.({}) || "休憩日も継続として守られています。";
+
   appState.restDates
     .slice()
     .sort()
     .forEach((date) => {
       const restDate = document.createElement("span");
       restDate.textContent = `休憩日：${date}`;
+      restDate.title = restLine;
+      restDate.setAttribute("aria-label", `休憩日：${date}。${restLine}`);
       restDatesArea.appendChild(restDate);
     });
 }
@@ -2449,7 +2797,8 @@ function renderRecentRestEvent() {
     return;
   }
 
-  recentRestEventText.textContent = `直近の休憩：${latestEvent.date} を休憩チケットで守りました。`;
+  const restLine = getTrainerLineGroup("rest", {}).protected?.({}) || "休憩チケットで継続を守りました。";
+  recentRestEventText.textContent = `直近の休憩：${latestEvent.date}。${restLine}`;
 }
 
 function getMonthLabel(date) {
@@ -2546,6 +2895,7 @@ function getDefaultState() {
     claimedGoalRewardDates: [],
     claimedLevelRewards: [],
     evaluationProfile: "standard",
+    selectedTrainerId: DEFAULT_TRAINER_ID,
     musicLoop: false
   };
 }
@@ -2594,6 +2944,7 @@ function normalizeState(parsedState) {
     evaluationProfile: evaluationProfiles[parsedState.evaluationProfile]
       ? parsedState.evaluationProfile
       : defaultState.evaluationProfile,
+    selectedTrainerId: getTrainerId(parsedState.selectedTrainerId || defaultState.selectedTrainerId),
     musicLoop: Boolean(parsedState.musicLoop ?? defaultState.musicLoop)
   };
 }
@@ -2716,29 +3067,35 @@ function stopSelectedMusic() {
 }
 
 function getResultTrainerComment(result) {
+  const lines = getTrainerLineGroup("result", RESULT_TRAINER_LINES);
+
   if (result.levelRewards.length > 0) {
-    return "休憩チケット獲得！がんばった分、休める日もちゃんと守れるよ。";
+    return lines.reward(result);
   }
 
   if (result.leveledUp) {
-    return "レベルアップ！積み重ねが形になってきたよ。";
+    return lines.levelUp(result);
   }
 
   if (result.goalAchieved) {
     return result.goalMarked
-      ? "今日の目標達成！しっかりやり切れたね。"
-      : "今日の目標はもう達成済みだよ。さらに積めたの、すごくいいね。";
+      ? lines.goalReached(result)
+      : lines.alreadyGoalReached(result);
+  }
+
+  if (result.record.score >= getDailyGoalScore()) {
+    return lines.highScore(result);
   }
 
   if (result.record.intensity <= 2) {
-    return "軽めでも続けたのがえらいよ。今日の流れ、ちゃんと守れたね。";
+    return lines.lowIntensity(result);
   }
 
   if (result.record.intensity >= 4) {
-    return "かなり追い込めたね。休憩も忘れずに！";
+    return lines.highIntensity(result);
   }
 
-  return "記録できたよ。今日の積み上げ、ちゃんと残ったね。";
+  return lines.default(result);
 }
 
 function getResultTitle(result) {
@@ -3274,6 +3631,7 @@ async function clearAllData() {
   scoringConfig = cloneScoringConfig(DEFAULT_SCORING_CONFIG);
   isDevScoringConfigActive = false;
   renderTrainerImageSettings();
+  renderTrainerSelectionPanel();
   renderScoringConfigPanel();
   setupCounselingPanel();
   applyMusicLoopSetting();
@@ -3726,6 +4084,7 @@ async function importBackupData(file) {
     isDevScoringConfigActive = localStorage.getItem(devScoringConfigStorageKey) !== null;
     saveState();
     renderScoringConfigPanel();
+    renderTrainerSelectionPanel();
     setupCounselingPanel();
     updateEvaluationProfileDisplay();
     applyMusicLoopSetting();
@@ -3801,6 +4160,7 @@ async function initializeApp() {
   todayLabel.textContent = getTodayText();
   await loadCustomTrainerImage();
   updateTrainerImages({ home: "default", session: "cheer", result: "result" });
+  renderTrainerSelectionPanel();
   applyMusicLoopSetting();
   updateAppVersionDisplay();
   setupDebugPanel();
@@ -3847,6 +4207,8 @@ applyCounselingButton.addEventListener("click", () => {
 });
 discardCounselingButton.addEventListener("click", discardCounselingResult);
 resetCounselingDefaultButton.addEventListener("click", resetCounselingToDefault);
+trainerSelect.addEventListener("change", () => updateTrainerSelectionPreview(trainerSelect.value));
+applyTrainerButton.addEventListener("click", applySelectedTrainer);
 customTrainerSlotElements.forEach((slotElement) => {
   slotElement.querySelector("[data-trainer-slot-input]").addEventListener("change", () => {
     handleCustomTrainerFileChange(slotElement);
